@@ -8,6 +8,9 @@
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
   <img src="https://img.shields.io/badge/langchain-1.2-orange" alt="LangChain">
 </p>
+<p align="center">
+  <a href="README.md">中文</a> | <a href="README.en.md">English</a>
+</p>
 
 ---
 
@@ -26,8 +29,8 @@
 > 前置：Python 3.10+，[DashScope API Key](https://dashscope.aliyuncs.com/)（阿里云百炼，注册即送免费额度）。
 
 ```bash
-git clone git@github.com:lhh737/-RAG-Chinese-QA.git
-cd -- -RAG-Chinese-QA
+git clone https://github.com/lhh737/rag-chinese-qa.git
+cd rag-chinese-qa
 
 python -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
