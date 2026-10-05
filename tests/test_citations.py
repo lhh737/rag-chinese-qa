@@ -43,3 +43,16 @@ def test_no_marker():
     citations, stats = parse_citations("这句话没有任何引用。", _ctx(1))
     assert citations == []
     assert stats["n_sentences_with_marker"] == 0
+
+
+def test_fullwidth_markers():
+    citations, _stats = parse_citations("结论见资料【1】，另见【2】。", _ctx(2))
+    assert [c.marker for c in citations] == [1, 2]
+    assert all(c.valid for c in citations)
+
+
+def test_arxiv_style_not_matched():
+    # arXiv 编号（含点）不应被误认为引用标记
+    citations, stats = parse_citations("该结果来自论文 [1706.03762] 的附录。", _ctx(2))
+    assert citations == []
+    assert stats["n_markers"] == 0

@@ -10,7 +10,7 @@ import re
 
 from ragqa.types import Citation, ContextBlock
 
-_MARKER = re.compile(r"\[(\d+)\]")
+_MARKER = re.compile(r"\[(\d{1,3})\]|【(\d{1,3})】")  # 半角 [n] 与全角【n】均接受
 _SENT_BOUNDARY = re.compile(r"(?<=[。！？!?；;])")
 
 
@@ -35,7 +35,7 @@ def parse_citations(answer: str, contexts: list[ContextBlock]) -> tuple[list[Cit
     n_markers = n_invalid = n_sent_with_marker = 0
 
     for sent in sentences:
-        markers = [int(m) for m in _MARKER.findall(sent)]
+        markers = [int(m.group(1) or m.group(2)) for m in _MARKER.finditer(sent)]
         if markers:
             n_sent_with_marker += 1
         seen: set[int] = set()
