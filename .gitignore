@@ -43,3 +43,9 @@ chroma_db/
 # 系统文件
 .DS_Store
 Thumbs.db
+
+# P0 对照实验临时索引（不入库）
+.parity/
+
+# 冒烟/评测的临时索引产物（报告与 traces 入库，索引不入库）
+eval_results/*/index/

@@ -1,0 +1,20 @@
+{
+ "generated": "2026-10-05",
+ "configs": [
+  {
+   "chunk_size": 1200,
+   "chunk_overlap": 150,
+   "chunks": 417,
+   "matched": 417,
+   "rate": 1.0
+  },
+  {
+   "chunk_size": 400,
+   "chunk_overlap": 40,
+   "chunks": 1141,
+   "matched": 1141,
+   "rate": 1.0
+  }
+ ],
+ "identical": true
+}
