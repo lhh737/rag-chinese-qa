@@ -77,3 +77,19 @@ def test_meta_dim_recorded(tmp_path, fake_embed):
     store.save()
     assert store.meta["dim"] == FakeEmbedding.dim
     assert store.meta["count"] == 3
+
+
+def test_bm25_tie_order_stable(tmp_path, fake_embed):
+    """并列分数必须按语料顺序（旧栈 sorted 稳定语义）——迁移对照发现并修复。"""
+    import numpy as np
+
+    store = _mk_store(tmp_path, fake_embed)
+    _add_doc(store)
+
+    class _TieBM25:
+        def get_scores(self, q_tokens):
+            return np.array([0.5, 0.5, 0.5])
+
+    store._bm25 = _TieBM25()
+    hits = store.bm25_rank("任意查询", k=3)
+    assert [h[0].metadata["chunk_uid"] for h in hits] == ["d1:c00000", "d1:c00001", "d1:c00002"]

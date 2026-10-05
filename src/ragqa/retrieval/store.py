@@ -255,7 +255,8 @@ class VectorStore:
         if not q_tokens:
             return []
         scores = self._bm25.get_scores(q_tokens)
-        top = np.argsort(scores)[::-1][:k]
+        # 稳定降序（与旧栈 sorted(..., reverse=True) 的并列语义一致：同分按语料顺序）
+        top = np.argsort(-scores, kind="stable")[:k]
         return [(self.child_documents[int(i)], float(scores[int(i)])) for i in top]
 
     # ── 文件 ─────────────────────────────────────────────
