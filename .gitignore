@@ -26,8 +26,8 @@ gradio_output.log
 # 向量库数据（运行时生成）
 faiss_db/
 
-# 模型文件（过大，不纳入 git）
-models/
+# 模型文件（过大，不纳入 git）——仅根目录的下载模型，别误伤 src/ragqa/models/
+/models/
 
 # 上传文件
 data/uploads/*

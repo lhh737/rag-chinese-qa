@@ -137,10 +137,10 @@ class VectorStore:
                     f"索引维度({self.index.d}) 与元信息({expected_dim}) 不一致，请重建索引"
                 )
             s = get_settings()
-            if self.meta.get("embed_model") and self.meta["embed_model"] != s.embed_api_model and s.embed_mode == "api":
+            if self.meta.get("embed_model") and self.meta["embed_model"] != s.embed_model_name:
                 logger.warning(
                     "[store] 索引由 %s 构建，当前配置为 %s —— 语义可能不一致，建议重建",
-                    self.meta.get("embed_model"), s.embed_api_model,
+                    self.meta.get("embed_model"), s.embed_model_name,
                 )
 
         # 分词缓存（count 一致时直接复用，否则重建）
@@ -223,7 +223,7 @@ class VectorStore:
         self.manifest[doc_id] = doc_info
         self.meta = {
             "dim": self.index.d if self.index is not None else None,
-            "embed_model": get_settings().embed_api_model if get_settings().embed_mode == "api" else get_settings().embed_local_model,
+            "embed_model": get_settings().embed_model_name,
             "count": len(self.child_documents),
             "pipeline_version": PIPELINE_VERSION,
             "updated_at": time.strftime("%Y-%m-%dT%H:%M:%S"),

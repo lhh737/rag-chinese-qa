@@ -34,10 +34,14 @@ class Settings(BaseSettings):
     dashscope_api_key: str = ""
     llm_base_url: str = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 
-    embed_mode: Literal["api", "local"] = "api"
+    embed_mode: Literal["api", "local"] = "api"  # 旧字段（=local 时优先于 provider）
+    embed_provider: Literal["dashscope", "openai", "local"] = "dashscope"
     embed_api_model: str = "qwen3.7-text-embedding-flash"
-    embed_dimensions: int = 1024
+    embed_dimensions: int = 0        # >0 时随请求发送；0 = 用模型原生维度（DashScope 内部回退 1024）
     embed_batch_size: int = 10
+    embed_base_url: str = ""         # openai 兼容供应商（默认回退 llm_base_url）
+    embed_api_key: str = ""          # 默认回退 dashscope_api_key
+    embed_extra_body: str = ""       # JSON 字符串：供应商特有参数（如 {"text_type": "..."}）
     embed_local_model: str = "models/bge-m3"
 
     rerank_mode: Literal["api", "local"] = "api"
@@ -62,6 +66,19 @@ class Settings(BaseSettings):
     @property
     def gen_model(self) -> str:
         return self.gen_model_id or self.llm_model_id
+
+    @property
+    def embed_provider_effective(self) -> str:
+        return "local" if self.embed_mode == "local" else self.embed_provider
+
+    @property
+    def embed_model_name(self) -> str:
+        """当前生效的嵌入模型名（进索引元信息 / trace。索引与模型强绑定）。"""
+        return self.embed_local_model if self.embed_provider_effective == "local" else self.embed_api_model
+
+    @property
+    def rerank_model_name(self) -> str:
+        return self.rerank_local_model if self.rerank_mode == "local" else self.rerank_api_model
 
     @property
     def faiss_dir(self) -> Path:

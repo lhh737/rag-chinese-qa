@@ -12,12 +12,18 @@ from ragqa.utils.paths import resolve_path
 
 @lru_cache(maxsize=1)
 def get_embed_model():
-    """嵌入模型：api（DashScope）| local（本地 BGE，optional extra）。"""
+    """嵌入模型：dashscope | openai（兼容端点，如腾讯 MaaS Kinfra）| local（本地 BGE）。"""
     s = get_settings()
-    if s.embed_mode == "local":
+    provider = s.embed_provider_effective
+    if provider == "local":
         from ragqa.models.local import LocalBGEEmbedding
 
         return LocalBGEEmbedding(resolve_path(s.embed_local_model))
+    if provider == "openai":
+        from ragqa.models.embedding import OpenAIEmbedding
+
+        logger.info("[model] 嵌入: OpenAI 兼容 / %s @ %s", s.embed_api_model, s.embed_base_url or s.llm_base_url)
+        return OpenAIEmbedding()
     from ragqa.models.embedding import DashScopeEmbedding
 
     logger.info("[model] 嵌入: DashScope API / %s", s.embed_api_model)
