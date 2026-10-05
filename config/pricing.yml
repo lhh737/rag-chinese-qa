@@ -5,6 +5,12 @@
 embed:
   qwen3.7-text-embedding-flash:
     input: 0.125
+  # 腾讯 MaaS Kinfra 系列：赠送额度内免费（每模型 100 万 tokens，2027-10-05 到期）；
+  # 额度用尽后按官方价计费（本项目暂按 0 计，报告注明"赠送额度内"）
+  kinfra-text-embedding-4b:
+    input: 0.0
+  kinfra-text-embedding-0.6b:
+    input: 0.0
 
 # DeepSeek 峰谷计价：高峰=北京时间周一至周五 9:00-12:00、14:00-18:00，其余为空闲
 generation:
