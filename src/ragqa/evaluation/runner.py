@@ -96,6 +96,7 @@ class RunConfig:
     run_id: str | None = None               # 测试可指定
     out_root: Path = REPO_ROOT / "eval_results"
     judge_prompt_version: str = "v1"
+    include_types: list[str] | None = None  # 仅跑指定题型/safety_type（如注入题单独走隔离索引）
 
 
 class EvaluationRunner:
@@ -117,6 +118,9 @@ class EvaluationRunner:
         items = [i for i in load_jsonl(self.cfg.dataset_path) if i.suite == self.cfg.suite]
         if self.cfg.split:
             items = [i for i in items if i.split == self.cfg.split]
+        if self.cfg.include_types:
+            keep = set(self.cfg.include_types)
+            items = [i for i in items if (i.type or i.safety_type) in keep]
         return items
 
     @staticmethod

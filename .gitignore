@@ -23,8 +23,8 @@ venv/
 .gradio/
 gradio_output.log
 
-# 向量库数据（运行时生成）
-faiss_db/
+# 向量库数据（运行时生成；含安全隔离索引 faiss_db_safety）
+faiss_db*/
 
 # 模型文件（过大，不纳入 git）——仅根目录的下载模型，别误伤 src/ragqa/models/
 /models/

@@ -1,0 +1,31 @@
+{
+ "version": "golden_v1",
+ "generated": "2026-10-05",
+ "golden": {
+  "file": "golden_v1.jsonl",
+  "hash": "5b8bfdd9ff4a099d65fd5e63bcea0cbe9b21c5a83b9c5bd77334d0eabc24bd77",
+  "n": 80,
+  "by_type": {
+   "factual": 30,
+   "multi_hop": 15,
+   "colloquial": 10,
+   "out_of_scope": 10,
+   "adversarial": 15
+  },
+  "by_split": {
+   "dev": 60,
+   "holdout": 20
+  }
+ },
+ "safety": {
+  "file": "safety_v1.jsonl",
+  "hash": "c9478e60cfbbf4ba55707059e4c8a55b23d15476ba56d333f66692239f63332e",
+  "n": 20,
+  "by_type": {
+   "injection_query": 4,
+   "injection_doc": 4,
+   "harmful": 6,
+   "boundary": 6
+  }
+ }
+}
