@@ -25,7 +25,7 @@ class DashScopeTextEmbedding(Embeddings):
     @property
     def client(self) -> OpenAI:
         if self._client is None:
-            self._client = OpenAI(api_key=LLM_API_KEY, base_url=LLM_BASE_URL)
+            self._client = OpenAI(api_key=DASHSCOPE_API_KEY, base_url=LLM_BASE_URL)
         return self._client
 
     MAX_BATCH = 10  # DashScope API 限制
