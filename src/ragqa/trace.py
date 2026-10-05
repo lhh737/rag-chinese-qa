@@ -139,7 +139,13 @@ def build_trace(
         trace["bm25"] = _hits_part(rt.bm25_hits)
         trace["rrf"] = rt.fusion
         trace["rerank"] = rt.rerank
-        trace["context"] = {"parent_ids": rt.context_parent_ids, "chars": rt.context_chars}
+        # texts 供评审查看器/错误分析直接阅读（trace 是唯一事实来源，不依赖索引文件回查）
+        trace["context"] = {
+            "parent_ids": rt.context_parent_ids,
+            "chars": rt.context_chars,
+            "texts": [b.text for b in retrieval.blocks],
+            "sources": [b.source for b in retrieval.blocks],
+        }
 
     if hyde is not None and hyde.usage:
         cost_by_stage["hyde"] = _gen_cost(s.gen_model, hyde.usage, pricing, peak)

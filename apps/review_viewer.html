@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>RAG 评测 · 评审查看器 v1</title>
+<style>
+  :root{--bg:#f6f7f9;--card:#fff;--line:#e3e6ea;--ink:#1f2329;--muted:#6b7280;--accent:#2563eb;
+        --ok:#16a34a;--bad:#dc2626;--warn:#d97706;--chip:#eef2ff}
+  *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.6 -apple-system,"Segoe UI","Microsoft YaHei",sans-serif}
+  header{position:sticky;top:0;background:#fff;border-bottom:1px solid var(--line);
+    padding:10px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;z-index:9}
+  header h1{font-size:15px;margin:0;font-weight:600}
+  .tabs{display:flex;gap:6px} .tabs button{padding:6px 12px;border:1px solid var(--line);background:#fff;
+    border-radius:8px;cursor:pointer} .tabs button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+  .spacer{flex:1}
+  button.act{padding:6px 12px;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:pointer}
+  button.act.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+  main{max-width:1080px;margin:16px auto;padding:0 16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+  .card h3{margin:0 0 8px;font-size:13px;color:var(--muted);font-weight:600;letter-spacing:.3px}
+  .q{font-size:17px;font-weight:600;margin:2px 0 10px}
+  .answer{white-space:pre-wrap}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{border-bottom:1px solid var(--line);padding:4px 6px;text-align:left;vertical-align:top}
+  th{color:var(--muted);font-weight:600}
+  .mono{font-family:ui-monospace,Consolas,monospace;font-size:12px}
+  .chip{display:inline-block;background:var(--chip);color:var(--accent);border-radius:6px;padding:1px 8px;font-size:12px;margin-right:6px}
+  .muted{color:var(--muted)} .ok{color:var(--ok)} .bad{color:var(--bad)} .warn{color:var(--warn)}
+  details{margin:6px 0} summary{cursor:pointer;color:var(--accent)}
+  textarea{width:100%;min-height:70px;border:1px solid var(--line);border-radius:8px;padding:8px;font:inherit;resize:vertical}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:8px 0}
+  .crit{border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin:8px 0}
+  .crit b{font-family:ui-monospace,Consolas,monospace}
+  label.rad{margin-right:14px;cursor:pointer}
+  .progress{font-size:12.5px;color:var(--muted)}
+  .intro{font-size:13px;color:var(--muted)}
+  .cite{background:#f8fafc;border-left:3px solid var(--accent);padding:6px 10px;margin:4px 0;border-radius:0 8px 8px 0}
+  .hidden{display:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>评审查看器 v1</h1>
+  <div class="tabs">
+    <button data-mode="trace" class="active">① 读 trace（错误分析）</button>
+    <button data-mode="blind">② 盲标（judge 校准）</button>
+    <button data-mode="spot">③ 抽检（归因复核）</button>
+  </div>
+  <div class="spacer"></div>
+  <input type="file" id="file" accept=".jsonl,.json,.txt" style="display:none">
+  <button class="act" onclick="document.getElementById('file').click()">载入 JSONL</button>
+  <button class="act primary" onclick="exportAnno()">导出标注 JSONL</button>
+</header>
+
+<main>
+  <div class="card intro" id="intro">
+    <b>用法</b>：按模式载入对应 JSONL → 逐条阅读/标注（自动保存在浏览器本地）→ 导出标注文件。
+    三种输入：<span class="mono">traces.jsonl</span>（评测运行产出的 trace，含完整检索链路）、
+    校准/盲标集、归因输出。导出文件为该查看器的唯一产出，可直接进后续分析。
+  </div>
+  <div class="row">
+    <button class="act" onclick="nav(-1)">← 上一条</button>
+    <button class="act" onclick="nav(1)">下一条 →</button>
+    <button class="act" onclick="skip()">跳过</button>
+    <span class="progress" id="progress">未载入数据</span>
+    <span class="spacer"></span>
+    <span class="progress" id="saved"></span>
+  </div>
+  <div id="view"></div>
+</main>
+
+<script>
+"use strict";
+/* ═══════════════ 状态与持久化 ═══════════════ */
+let MODE = "trace", ITEMS = [], IDX = 0, KEYS = [], ANNO = {}, FILE_ID = "";
+
+function storageKey(){ return "reviewer:" + FILE_ID + ":" + MODE; }
+function saveLocal(){ try{ localStorage.setItem(storageKey(), JSON.stringify(ANNO)); flash("已自动保存"); }catch(e){} }
+function loadLocal(){ try{ const s = localStorage.getItem(storageKey()); if(s) ANNO = JSON.parse(s); }catch(e){ ANNO = {}; } }
+let flashTimer;
+function flash(t){ const el = document.getElementById("saved"); el.textContent = t; clearTimeout(flashTimer);
+  flashTimer = setTimeout(()=>el.textContent="", 1200); }
+
+/* ═══════════════ 文件载入 ═══════════════ */
+document.getElementById("file").addEventListener("change", async (e)=>{
+  const f = e.target.files[0]; if(!f) return;
+  FILE_ID = f.name + ":" + f.size; IDX = 0; ANNO = {};
+  const text = await f.text();
+  ITEMS = text.split(/\r?\n/).filter(l=>l.trim()).map(l=>{ try{ return JSON.parse(l); }catch(err){ return {_parse_error: l.slice(0,200)}; } });
+  KEYS = ITEMS.map((it,i)=> it.trace_id || it.id || it.case_id || ("row-" + i));
+  loadLocal(); render();
+});
+
+/* ═══════════════ 导航 ═══════════════ */
+function nav(d){ if(!ITEMS.length) return; IDX = Math.min(Math.max(IDX+d, 0), ITEMS.length-1); render(); }
+function skip(){ nav(1); }
+document.querySelectorAll(".tabs button").forEach(b=> b.addEventListener("click", ()=>{
+  document.querySelectorAll(".tabs button").forEach(x=>x.classList.remove("active"));
+  b.classList.add("active"); MODE = b.dataset.mode; IDX = 0; ANNO = {}; loadLocal(); render();
+}));
+
+/* ═══════════════ 工具 ═══════════════ */
+const esc = s => String(s??"").replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt = (x, n=4) => (x===null||x===undefined) ? "—" : (typeof x==="number" ? x.toFixed(n) : String(x));
+function badge(v, txt){ return `<span class="chip">${esc(txt ?? v)}</span>`; }
+function citeList(cits){
+  if(!cits || !cits.length) return `<span class="muted">（无引用标记）</span>`;
+  return cits.map(c=>`<div class="cite">[${c.marker}] ${c.valid? '<span class="ok">✓</span>':'<span class="bad">✗ 非法编号</span>'}
+    <span class="muted">${esc(c.source_doc||"—")}</span> · ${esc((c.supporting_snippet||"").slice(0,90))}…</div>`).join("");
+}
+
+/* ═══════════════ 模式一：读 trace ═══════════════ */
+function renderTrace(it){
+  if(it._parse_error) return `<div class="card bad">JSON 解析失败：${esc(it._parse_error)}</div>`;
+  const hy = it.hyde, rr = it.rerank, fus = (it.rrf && it.rrf.fused) || [];
+  const blocks = (it.context && it.context.parent_ids) || [];
+  const gen = it.generation || {};
+  const totals = it.totals || {};
+  const vec = it.vector||{}, bm = it.bm25||{};
+  const rows = (ids=[], scores=[]) => ids.slice(0,8).map((id,i)=>
+      `<tr><td class="mono">${esc(id)}</td><td>${fmt(scores[i])}</td></tr>`).join("");
+  return `
+  <div class="card">
+    <div>${badge(it.trace_id||"?")}${badge(it.config_id||"")}<span class="muted">${esc(it.timestamp||"")}</span></div>
+    <div class="q">${esc(it.question||"")}</div>
+  </div>
+  <div class="card"><h3>HyDE</h3>
+    ${hy ? (hy.used ? `<div class="muted">启用并命中（${fmt(hy.latency_ms,0)}ms）</div><details open><summary>假设性文档</summary><div>${esc(hy.output||"")}</div></details>`
+      : `<div class="warn">未使用${hy.error? "："+esc(hy.error):""}</div>`) : `<span class="muted">—</span>`}
+  </div>
+  <div class="card"><h3>召回与融合</h3>
+    <div class="row" style="align-items:flex-start">
+      <div style="flex:1"><b>向量 top（${vec.n??0}）</b><table><tr><th>chunk</th><th>dist</th></tr>${rows(vec.ids||[],vec.scores||[])}</table></div>
+      <div style="flex:1"><b>BM25 top（${bm.n??0}）</b><table><tr><th>chunk</th><th>score</th></tr>${rows(bm.ids||[],bm.scores||[])}</table></div>
+    </div>
+    <details><summary>RRF 融合明细（${(it.rrf&&it.rrf.strategy)||"—"}${it.rrf&&it.rrf.k?" · k="+it.rrf.k:""}）</summary>
+      <table><tr><th>chunk</th><th>rrf</th><th>向量rank</th><th>bm25rank</th></tr>
+      ${fus.slice(0,15).map(f=>`<tr><td class="mono">${esc(f.chunk_uid)}</td><td>${fmt(f.rrf_score,6)}</td><td>${f.vector_rank??"—"}</td><td>${f.bm25_rank??"—"}</td></tr>`).join("")}</table></details>
+  </div>
+  <div class="card"><h3>重排（top ${rr&&rr.scores?rr.scores.length:0}${rr&&rr.error? " · ⚠ "+esc(rr.error):""}）</h3>
+    <table><tr><th>#</th><th>chunk</th><th>score</th></tr>
+    ${((rr&&rr.top)||[]).map((t,i)=>`<tr><td>${i+1}</td><td class="mono">${esc(t)}</td><td>${fmt((rr.scores||[])[i])}</td></tr>`).join("")}</table>
+  </div>
+  <div class="card"><h3>最终上下文（${blocks.length} 父块）</h3>
+    ${blocks.length? blocks.map((p,i)=>{
+      const texts = (it.context && it.context.texts) || [];
+      const sources = (it.context && it.context.sources) || [];
+      const body = texts[i] ? `<div style="white-space:pre-wrap;margin-top:6px">${esc(texts[i])}</div>`
+                            : `<div class="muted">（该 trace 未含正文；重跑后 trace 会携带 context.texts）</div>`;
+      return `<details><summary><span class="chip">[${i+1}]</span> ${esc(sources[i]||"")} <span class="mono muted">${esc(p)}</span></summary>${body}</details>`;
+    }).join("") : '<span class="muted">—</span>'}
+    <div class="muted">上下文总长 ${it.context?.chars ?? "—"} 字符</div>
+  </div>
+  <div class="card"><h3>生成与引用</h3>
+    <div class="answer">${esc(gen.answer||"（无生成）")}</div>
+    <div style="margin-top:8px">${citeList(gen.citations)}</div>
+    <div class="muted">usage ${esc(JSON.stringify(gen.usage||{}))} · ${fmt(gen.latency_ms,0)}ms</div>
+  </div>
+  <div class="card"><h3>总账与版本</h3>
+    <div class="mono">latency: ${esc(JSON.stringify(totals.latency_ms||{}))}</div>
+    <div class="mono">cost ≈ ¥${fmt(totals.cost_total_cny,4)}（${esc(JSON.stringify(totals.cost_by_stage_cny||{}))}）</div>
+    <div class="mono muted">${esc(JSON.stringify(it.versions||{}))}</div>
+  </div>
+  <div class="card"><h3>开放编码（用自己的话描述失败/亮点）</h3>
+    <textarea id="anno" placeholder="例：HyDE 把问题改写偏了，召回了另一篇论文的段落；答案其实正确但引用编号错位…">${esc(ANNO[KEYS[IDX]]?.notes||"")}</textarea>
+    <div class="row"><label class="rad"><input type="radio" name="fl" value="fail" ${ANNO[KEYS[IDX]]?.flag==="fail"?"checked":""}> 记一条失败</label>
+      <label class="rad"><input type="radio" name="fl" value="ok" ${ANNO[KEYS[IDX]]?.flag==="ok"?"checked":""}> 正常/亮点</label>
+      <label class="rad"><input type="radio" name="fl" value="" ${!ANNO[KEYS[IDX]]?.flag?"checked":""}> 未标记</label></div>
+  </div>`;
+}
+
+/* ═══════════════ 模式二：盲标（隐藏一切 judge 字段）═══════════════ */
+function renderBlind(it){
+  const criteria = it.criteria || ["answer_correctness", "faithfulness", "citation_accuracy"];
+  const rec = ANNO[KEYS[IDX]] || {};
+  const blocks = (it.contexts || it.context_blocks || []);
+  return `
+  <div class="card">
+    <div>${badge(KEYS[IDX])}${badge(it.criterion||"")}<span class="muted">第 ${IDX+1} / ${ITEMS.length} 条（盲标：judge 结论已隐藏）</span></div>
+    <div class="q">${esc(it.question||"")}</div>
+    ${it.ground_truth? `<details open><summary>参考答案（ground_truth）</summary><div>${esc(it.ground_truth)}</div></details>`:""}
+    ${(it.key_claims&&it.key_claims.length)? `<details open><summary>判分要点 key_claims</summary><ul>${it.key_claims.map(c=>`<li>${esc(c)}</li>`).join("")}</ul></details>`:""}
+  </div>
+  <div class="card"><h3>上下文</h3>
+    ${blocks.length? blocks.map((b,i)=>`<details><summary>参考资料 [${b.rank ?? i+1}] · ${esc(b.source||b.doc_id||"")}</summary><div style="white-space:pre-wrap">${esc((b.text||"").slice(0,1500))}</div></details>`).join(""): '<span class="muted">（无上下文）</span>'}
+  </div>
+  <div class="card"><h3>系统回答</h3>
+    <div class="answer">${esc(it.answer||"（无）")}</div>
+    ${(it.citations&&it.citations.length)? `<div style="margin-top:6px">${citeList(it.citations)}</div>`:""}
+  </div>
+  <div class="card"><h3>逐 criterion 判定（二分）</h3>
+    ${criteria.map(cr=>{
+      const c = rec[cr] || {};
+      return `<div class="crit"><b>${esc(cr)}</b>
+        <div class="row">
+          <label class="rad"><input type="radio" name="c_${cr}" data-cri="${cr}" value="pass" ${c.label==="pass"?"checked":""}> 通过</label>
+          <label class="rad"><input type="radio" name="c_${cr}" data-cri="${cr}" value="fail" ${c.label==="fail"?"checked":""}> 失败</label>
+          <label class="rad"><input type="radio" name="c_${cr}" data-cri="${cr}" value="skip" ${c.label==="skip"?"checked":""}> 拿不准/跳过</label>
+        </div>
+        <textarea data-cri="${cr}" placeholder="简短理由（判失败时必填：写清依据）">${esc(c.reason||"")}</textarea>
+      </div>`;}).join("")}
+  </div>`;
+}
+
+/* ═══════════════ 模式三：抽检（归因复核）═══════════════ */
+const ATTRS = ["retrieval_miss","ranking_poor","hallucination","omission","refusal_error","citation_error","other","无问题"];
+function renderSpot(it){
+  const rec = ANNO[KEYS[IDX]] || {};
+  const trace = it.trace || {};
+  const ev = it.evidence || {};
+  return `
+  <div class="card">
+    <div>${badge(it.case_id||KEYS[IDX])}${badge(it.taxonomy_label||trace.type||"")}</div>
+    <div class="q">${esc(it.question||trace.question||"")}</div>
+    ${it.answer?`<details open><summary>系统回答</summary><div class="answer">${esc(it.answer)}</div></details>`:""}
+  </div>
+  <div class="card"><h3>自动归因与证据</h3>
+    <div>自动归因：<b class="mono">${esc(it.attribution||"—")}</b>${it.sub_label? " / "+esc(it.sub_label):""}</div>
+    <div class="muted">依据：${esc(typeof ev === "string" ? ev : JSON.stringify(ev))}</div>
+    ${it.suggestion?`<div class="muted">建议修复：${esc(it.suggestion)}</div>`:""}
+  </div>
+  <div class="card"><h3>复核（确认 / 纠正）</h3>
+    <div class="row">
+      <label class="rad"><input type="radio" name="spot" data-k="verdict" value="confirm" ${rec.verdict==="confirm"?"checked":""}> 确认归因正确</label>
+      <label class="rad"><input type="radio" name="spot" data-k="verdict" value="correct" ${rec.verdict==="correct"?"checked":""}> 需要纠正</label>
+    </div>
+    <div class="row">纠正为：
+      <select id="spotsel">${ATTRS.map(a=>`<option ${rec.corrected===a?"selected":""}>${a}</option>`).join("")}</select>
+    </div>
+    <textarea id="spotnote" placeholder="备注">${esc(rec.note||"")}</textarea>
+  </div>`;
+}
+
+/* ═══════════════ 渲染与事件绑定 ═══════════════ */
+function render(){
+  const el = document.getElementById("view");
+  document.getElementById("progress").textContent = ITEMS.length? `第 ${IDX+1} / ${ITEMS.length} 条 · 已标注 ${Object.keys(ANNO).length}` : "未载入数据";
+  if(!ITEMS.length){ el.innerHTML = ""; return; }
+  const it = ITEMS[IDX];
+  el.innerHTML = MODE==="trace" ? renderTrace(it) : MODE==="blind" ? renderBlind(it) : renderSpot(it);
+
+  if(MODE==="trace"){
+    document.getElementById("anno").addEventListener("input", e=>{
+      ANNO[KEYS[IDX]] = { trace_id: KEYS[IDX], question: it.question, notes: e.target.value,
+        flag: document.querySelector('input[name=fl]:checked')?.value || "" };
+      saveLocal(); });
+    document.querySelectorAll('input[name=fl]').forEach(r=> r.addEventListener("change", e=>{
+      ANNO[KEYS[IDX]] = ANNO[KEYS[IDX]] || {trace_id:KEYS[IDX], question:it.question, notes:""};
+      ANNO[KEYS[IDX]].flag = e.target.value; saveLocal(); render(); }));
+  }
+  if(MODE==="blind"){
+    document.querySelectorAll("input[type=radio][data-cri]").forEach(r=> r.addEventListener("change", e=>{
+      const cr = e.target.dataset.cri;
+      ANNO[KEYS[IDX]] = ANNO[KEYS[IDX]] || { id: KEYS[IDX], question: it.question, criteria: {} };
+      ANNO[KEYS[IDX]].criteria[cr] = ANNO[KEYS[IDX]].criteria[cr] || {};
+      ANNO[KEYS[IDX]].criteria[cr].label = e.target.value; saveLocal(); updateProgress(); }));
+    document.querySelectorAll("textarea[data-cri]").forEach(t=> t.addEventListener("input", e=>{
+      const cr = e.target.dataset.cri;
+      ANNO[KEYS[IDX]] = ANNO[KEYS[IDX]] || { id: KEYS[IDX], question: it.question, criteria: {} };
+      ANNO[KEYS[IDX]].criteria[cr] = ANNO[KEYS[IDX]].criteria[cr] || {};
+      ANNO[KEYS[IDX]].criteria[cr].reason = e.target.value;
+      // 展开为逐 criterion 一行（导出友好）
+      saveLocal(); }));
+  }
+  if(MODE==="spot"){
+    document.querySelectorAll('input[name=spot]').forEach(r=> r.addEventListener("change", e=>{
+      ANNO[KEYS[IDX]] = ANNO[KEYS[IDX]] || { case_id: it.case_id||KEYS[IDX], question: it.question, attribution: it.attribution };
+      ANNO[KEYS[IDX]].verdict = e.target.value;
+      ANNO[KEYS[IDX]].corrected = document.getElementById("spotsel").value;
+      ANNO[KEYS[IDX]].note = document.getElementById("spotnote").value; saveLocal(); }));
+    ["spotsel","spotnote"].forEach(id=> document.getElementById(id).addEventListener("input", ()=>{
+      ANNO[KEYS[IDX]] = ANNO[KEYS[IDX]] || { case_id: it.case_id||KEYS[IDX], question: it.question, attribution: it.attribution };
+      ANNO[KEYS[IDX]].corrected = document.getElementById("spotsel").value;
+      ANNO[KEYS[IDX]].note = document.getElementById("spotnote").value; saveLocal(); }));
+  }
+}
+function updateProgress(){ document.getElementById("progress").textContent = `第 ${IDX+1} / ${ITEMS.length} 条 · 已标注 ${Object.keys(ANNO).length}`; }
+
+/* ═══════════════ 导出 ═══════════════ */
+function exportAnno(){
+  if(!Object.keys(ANNO).length){ alert("还没有标注内容"); return; }
+  const rows = [];
+  for(const k of Object.keys(ANNO)){
+    const a = ANNO[k];
+    if(MODE==="blind" && a.criteria){
+      for(const [cr, v] of Object.entries(a.criteria)){
+        rows.push({ id: a.id, criterion: cr, label: v.label ?? null, reason: v.reason ?? "", mode: "blind" });
+      }
+    } else { rows.push({ ...a, mode: MODE }); }
+  }
+  const blob = new Blob([rows.map(r=>JSON.stringify(r)).join("\n")], {type:"application/jsonl"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = `${FILE_ID.split(":")[0] || "annotations"}_${MODE}_${new Date().toISOString().slice(0,19).replace(/[:T]/g,"")}.jsonl`;
+  a.click(); URL.revokeObjectURL(a.href);
+}
+render();
+</script>
+</body>
+</html>

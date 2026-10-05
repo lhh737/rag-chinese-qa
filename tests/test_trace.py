@@ -51,6 +51,8 @@ def test_build_trace_required_fields():
                 "hyde", "vector", "bm25", "rrf", "rerank", "context", "generation", "totals", "versions"]:
         assert key in trace, key
     assert trace["schema_version"] == 1
+    assert trace["context"]["texts"] == ["上下文内容"]  # 查看器/错误分析直接读取
+    assert trace["context"]["sources"] == ["d1.pdf"]
     assert trace["generation"]["citations"][0]["marker"] == 1
     assert trace["totals"]["cost_estimated"] is True
     assert trace["totals"]["cost_total_cny"] > 0  # deepseek 生成有 token 成本
