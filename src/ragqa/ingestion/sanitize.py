@@ -8,7 +8,9 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-# 零宽字符 / 双向控制符 / C0 控制符（保留 \t \n \r）——用码点判断，源码中不出现不可见字符
+# 零宽字符 / 双向控制符 / C0 控制符 / 孤立代理项（保留 \t \n \r）——用码点判断，源码中不出现不可见字符
+# 孤立代理项（U+D800–DFFF）来自 PDF 数学字体抽取（如 𝕏 被抽成半个代理对），
+# 属非法 Unicode 标量值，会令 UTF-8 编码与 JSON 落盘失败——必须在清洗层剥离（P0 实弹发现）。
 _STRIP_RANGES: tuple[tuple[int, int], ...] = (
     (0x200B, 0x200F),  # 零宽空格 / 连接符 / 方向标记
     (0x202A, 0x202E),  # 双向控制符
@@ -17,6 +19,7 @@ _STRIP_RANGES: tuple[tuple[int, int], ...] = (
     (0x0000, 0x0008),  # C0 控制符（保留 \t\n\r）
     (0x000B, 0x000C),
     (0x000E, 0x001F),
+    (0xD800, 0xDFFF),  # 孤立代理项（非法，非合法字符对）
 )
 
 # 可疑指令模式（中英文，大小写不敏感）；命中只告警，不改内容

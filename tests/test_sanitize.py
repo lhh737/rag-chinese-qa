@@ -42,3 +42,11 @@ def test_sanitize_combined():
     assert stats.chars_removed == 1
     assert "ignore_zh" in stats.suspicious
     assert ZWSP not in cleaned
+
+
+def test_strip_lone_surrogates():
+    """P0 实弹：PDF 数学字体抽取出孤立代理项，会令 UTF-8 落盘失败，必须剥离。"""
+    text = "公式 " + chr(0xD835) + chr(0xD835) + " 结束"
+    cleaned, n = strip_dirty_chars(text)
+    assert n == 2 and cleaned == "公式  结束"
+    assert chr(0xD835) not in cleaned

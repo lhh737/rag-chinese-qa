@@ -16,6 +16,7 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 from pathlib import Path
 from typing import Any
@@ -31,6 +32,13 @@ from ragqa.utils.paths import resolve_path
 from ragqa.utils.text import zh_tokenize
 
 PIPELINE_VERSION = "p0-v1"
+
+
+def _atomic_write_text(path: Path, text: str) -> None:
+    """临时文件 + 原子替换：编码/写入中途失败时不破坏既有文件。"""
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(text, encoding="utf-8")
+    os.replace(tmp, path)
 
 
 class StoreInconsistencyError(RuntimeError):
@@ -157,25 +165,31 @@ class VectorStore:
                 self._save_tokens()
 
     def save(self) -> None:
-        """全量落盘。顺序：先子块（行号真相）后索引，任何中断都可被加载期校验发现。"""
+        """全量落盘。顺序：先子块（行号真相）后索引，任何中断都可被加载期校验发现。
+
+        所有写入走"临时文件 + 原子替换"：编码/写入中途失败时，旧文件保持完好
+        （P0 实弹教训：直接 write_text 会先截断再编码，异常即毁文件）。
+        """
         self.persist_dir.mkdir(parents=True, exist_ok=True)
-        self.child_path.write_text(
+        _atomic_write_text(
+            self.child_path,
             json.dumps(
                 [{"page_content": d.page_content, "metadata": d.metadata} for d in self.child_documents],
                 ensure_ascii=False,
             ),
-            encoding="utf-8",
         )
         if self.index is not None:
-            faiss.write_index(self.index, str(self.index_path))
-        self.parent_path.write_text(json.dumps(self.parent_store, ensure_ascii=False), encoding="utf-8")
-        self.manifest_path.write_text(json.dumps(self.manifest, ensure_ascii=False, indent=1), encoding="utf-8")
-        self.meta_path.write_text(json.dumps(self.meta, ensure_ascii=False, indent=1), encoding="utf-8")
+            tmp_index = self.index_path.with_name(self.index_path.name + ".tmp")
+            faiss.write_index(self.index, str(tmp_index))
+            os.replace(tmp_index, self.index_path)
+        _atomic_write_text(self.parent_path, json.dumps(self.parent_store, ensure_ascii=False))
+        _atomic_write_text(self.manifest_path, json.dumps(self.manifest, ensure_ascii=False, indent=1))
+        _atomic_write_text(self.meta_path, json.dumps(self.meta, ensure_ascii=False, indent=1))
         self._save_tokens()
 
     def _save_tokens(self) -> None:
         if self.tokenized_corpus:
-            self.tokens_path.write_text(json.dumps(self.tokenized_corpus, ensure_ascii=False), encoding="utf-8")
+            _atomic_write_text(self.tokens_path, json.dumps(self.tokenized_corpus, ensure_ascii=False))
 
     # ── 文档管理 ─────────────────────────────────────────
 
