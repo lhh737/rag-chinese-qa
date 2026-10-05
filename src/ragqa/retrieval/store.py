@@ -1,260 +1,276 @@
-"""
-向量存储：FAISS 向量库 + 父子分块 + BM25 语料 + 文件清单。
-同时兼容简单 RAGPipeline 和混合检索 HybridRetriever。
+"""向量存储：faiss-cpu 直连（替代 langchain_community FAISS 包装，设计 §5.4）。
+
+关键设计：
+- `IndexFlatL2`：与旧 langchain FAISS 默认距离策略一致，保证依赖迁移对照可信；
+  更换度量（如余弦/IP）属于"可比变更"，留给消融实验阶段。
+- 行号映射：faiss 索引第 i 行 ↔ `child_documents[i]`，两者一起落盘；
+  加载时做 count / dim 双校验，不一致即拒绝加载（宁可显式失败，不静默错配）。
+- 持久化布局（faiss_db/）：
+    index.faiss         faiss 原生索引
+    child_docs.json     子块（顺序即索引行号）
+    parent_store.json   父块 {parent_id: {page_content, metadata}}
+    manifest.json       文档清单 {doc_id: {...}}
+    index_meta.json     索引元信息（维度 / 嵌入模型 / 数量 / 时间 / 管道版本）
+    tokenized_corpus.json  BM25 分词缓存（避免每次启动重新分词）
 """
 from __future__ import annotations
 
 import json
-import os
-import uuid
-from datetime import datetime
+import time
+from pathlib import Path
 from typing import Any
 
-import jieba
-from langchain_community.vectorstores import FAISS
-from langchain_core.documents import Document
+import faiss
+import numpy as np
+from rank_bm25 import BM25Okapi
 
-from config.settings import FAISS_PERSIST_DIR, RETRIEVAL_K
-from model.factory import get_embed_model
-from utils.config_handler import faiss_conf
-from utils.logger_handler import logger
+from ragqa.config.settings import get_settings
+from ragqa.types import Document
+from ragqa.utils.logging import logger
+from ragqa.utils.paths import resolve_path
+from ragqa.utils.text import zh_tokenize
+
+PIPELINE_VERSION = "p0-v1"
 
 
-def _zh_tokenize(text: str) -> list[str]:
-    text = (text or "").strip()
-    if not text:
-        return []
-    try:
-        return [t for t in jieba.cut(text) if t.strip()]
-    except Exception:
-        return list(text)
+class StoreInconsistencyError(RuntimeError):
+    pass
 
 
 class VectorStore:
-    """统一向量存储：FAISS 子块检索 + 父块上下文还原 + BM25 混合检索 + 文件清单。"""
+    def __init__(self, persist_dir: str | Path | None = None, embed_model: Any | None = None,
+                 auto_load: bool = True) -> None:
+        s = get_settings()
+        self.persist_dir = Path(persist_dir) if persist_dir else s.faiss_dir
+        self.persist_dir = resolve_path(self.persist_dir)
+        self._embed = embed_model  # 懒取（测试可注入假嵌入）
 
-    def __init__(self):
-        self.persist_dir = FAISS_PERSIST_DIR
-        self.index_path = os.path.join(self.persist_dir, "faiss_index")
-        self.manifest_path = os.path.join(self.persist_dir, "manifest.json")
-        self.parent_store_path = os.path.join(self.persist_dir, "parent_store.json")
-        os.makedirs(self.persist_dir, exist_ok=True)
-
-        # FAISS store（子块索引）
-        self.store: FAISS | None = None
-        # 子块列表（用于 BM25 检索 + 混合检索遍历）
+        self.index: faiss.IndexFlatL2 | None = None
         self.child_documents: list[Document] = []
-        # 子块对应的分词结果（BM25 用）
         self.tokenized_corpus: list[list[str]] = []
-        # 父块存储：parent_id -> {"page_content": str, "metadata": dict}
         self.parent_store: dict[str, dict[str, Any]] = {}
-        # 文件清单：md5 -> 文件信息
-        self.manifest: dict[str, dict] = {}
+        self.manifest: dict[str, dict[str, Any]] = {}
+        self.meta: dict[str, Any] = {}
+        self._bm25: BM25Okapi | None = None
 
-        self._load()
+        if auto_load:
+            self.load()
 
-    # ── 持久化 ──────────────────────────────────────────────
-
-    def _load(self):
-        """从磁盘恢复全部状态。"""
-        # FAISS
-        if os.path.isdir(self.index_path):
-            try:
-                self.store = FAISS.load_local(
-                    self.index_path,
-                    get_embed_model(),
-                    index_name="index",
-                    allow_dangerous_deserialization=True,
-                )
-                # 验证维度一致（切换嵌入模型后旧索引会不兼容）
-                if self.store.index:
-                    try:
-                        expected = len(get_embed_model().embed_query("test"))
-                        if self.store.index.d != expected:
-                            logger.info("[VectorStore] FAISS 维度不匹配（旧 %d，新 %d），重建",
-                                        self.store.index.d, expected)
-                            self.store = None
-                    except Exception as e:
-                        logger.warning("[VectorStore] 无法检测嵌入维度: %s", e)
-            except Exception as e:
-                logger.warning("[VectorStore] FAISS 加载失败，将重建: %s", e)
-                self.store = None
-
-        # 子块文档（配合 FAISS 索引重建用；FAISS 本身不存 doc 内容外的 metadata）
-        child_path = os.path.join(self.persist_dir, "child_docs.json")
-        if os.path.isfile(child_path):
-            try:
-                with open(child_path, "r", encoding="utf-8") as f:
-                    raw = json.load(f)
-                self.child_documents = [Document(**d) if isinstance(d, dict) else d for d in raw]
-                self.tokenized_corpus = [_zh_tokenize(d.page_content) for d in self.child_documents]
-            except Exception as e:
-                logger.warning("[VectorStore] 子块文档恢复失败: %s", e)
-                self.child_documents = []
-                self.tokenized_corpus = []
-
-        # 父块存储
-        if os.path.isfile(self.parent_store_path):
-            try:
-                with open(self.parent_store_path, "r", encoding="utf-8") as f:
-                    self.parent_store = json.load(f)
-            except Exception as e:
-                logger.warning("[VectorStore] 父块存储恢复失败: %s", e)
-                self.parent_store = {}
-
-        # 文件清单
-        if os.path.isfile(self.manifest_path):
-            try:
-                with open(self.manifest_path, "r", encoding="utf-8") as f:
-                    self.manifest = json.load(f)
-            except Exception as e:
-                logger.warning("[VectorStore] 文件清单恢复失败: %s", e)
-                self.manifest = {}
-
-    def _save(self):
-        """保存全部状态到磁盘。"""
-        # FAISS
-        if self.store:
-            self.store.save_local(self.index_path, index_name="index")
-
-        # 子块文档
-        child_path = os.path.join(self.persist_dir, "child_docs.json")
-        try:
-            with open(child_path, "w", encoding="utf-8") as f:
-                json.dump(
-                    [{"page_content": d.page_content, "metadata": d.metadata} for d in self.child_documents],
-                    f, ensure_ascii=False, indent=2,
-                )
-        except Exception as e:
-            logger.error("[VectorStore] 保存子块文档失败: %s", e)
-
-        # 父块存储
-        try:
-            with open(self.parent_store_path, "w", encoding="utf-8") as f:
-                json.dump(self.parent_store, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            logger.error("[VectorStore] 保存父块存储失败: %s", e)
-
-        # 文件清单
-        try:
-            with open(self.manifest_path, "w", encoding="utf-8") as f:
-                json.dump(self.manifest, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            logger.error("[VectorStore] 保存文件清单失败: %s", e)
-
-    # ── 属性 ──────────────────────────────────────────────
+    # ── 路径 ─────────────────────────────────────────────
 
     @property
-    def faiss_store(self) -> FAISS | None:
-        """hybrid_retriever 兼容属性。"""
-        return self.store
+    def index_path(self) -> Path:
+        return self.persist_dir / "index.faiss"
+
+    @property
+    def child_path(self) -> Path:
+        return self.persist_dir / "child_docs.json"
+
+    @property
+    def parent_path(self) -> Path:
+        return self.persist_dir / "parent_store.json"
+
+    @property
+    def manifest_path(self) -> Path:
+        return self.persist_dir / "manifest.json"
+
+    @property
+    def meta_path(self) -> Path:
+        return self.persist_dir / "index_meta.json"
+
+    @property
+    def tokens_path(self) -> Path:
+        return self.persist_dir / "tokenized_corpus.json"
+
+    @property
+    def embed(self):
+        if self._embed is None:
+            from ragqa.models.factory import get_embed_model
+
+            self._embed = get_embed_model()
+        return self._embed
+
+    # ── 属性 ─────────────────────────────────────────────
 
     @property
     def is_empty(self) -> bool:
-        return self.store is None or len(self.child_documents) == 0
+        return self.index is None or len(self.child_documents) == 0
+
+    @property
+    def count(self) -> int:
+        return len(self.child_documents)
 
     @property
     def file_list(self) -> list[dict]:
         return sorted(self.manifest.values(), key=lambda x: x.get("loaded_at", ""), reverse=True)
 
-    # ── 文档管理 ──────────────────────────────────────────
+    # ── 加载 / 保存 ───────────────────────────────────────
 
-    def add_documents(self, chunks: list[Document], file_info: dict) -> bool:
-        """简单模式：添加普通分块（无父子分块）。"""
-        md5 = file_info["md5"]
-        if md5 in self.manifest:
+    def load(self) -> None:
+        if not self.persist_dir.is_dir():
+            return
+        try:
+            if self.index_path.is_file():
+                self.index = faiss.read_index(str(self.index_path))
+            if self.child_path.is_file():
+                raw = json.loads(self.child_path.read_text(encoding="utf-8"))
+                self.child_documents = [Document(page_content=d["page_content"], metadata=d.get("metadata", {})) for d in raw]
+            if self.parent_path.is_file():
+                self.parent_store = json.loads(self.parent_path.read_text(encoding="utf-8"))
+            if self.manifest_path.is_file():
+                self.manifest = json.loads(self.manifest_path.read_text(encoding="utf-8"))
+            if self.meta_path.is_file():
+                self.meta = json.loads(self.meta_path.read_text(encoding="utf-8"))
+        except Exception as e:
+            raise StoreInconsistencyError(f"索引文件读取失败: {e}") from e
+
+        # ── 一致性校验 ──
+        if self.index is not None:
+            if self.index.ntotal != len(self.child_documents):
+                raise StoreInconsistencyError(
+                    f"索引行数({self.index.ntotal}) 与子块数({len(self.child_documents)}) 不一致，"
+                    f"请重建索引（ragqa ingest）"
+                )
+            expected_dim = int(self.meta.get("dim", 0) or 0)
+            if expected_dim and self.index.d != expected_dim:
+                raise StoreInconsistencyError(
+                    f"索引维度({self.index.d}) 与元信息({expected_dim}) 不一致，请重建索引"
+                )
+            s = get_settings()
+            if self.meta.get("embed_model") and self.meta["embed_model"] != s.embed_api_model and s.embed_mode == "api":
+                logger.warning(
+                    "[store] 索引由 %s 构建，当前配置为 %s —— 语义可能不一致，建议重建",
+                    self.meta.get("embed_model"), s.embed_api_model,
+                )
+
+        # 分词缓存（count 一致时直接复用，否则重建）
+        if self.child_documents:
+            if self.tokens_path.is_file() and len(self.tokenized_corpus) == 0:
+                try:
+                    cached = json.loads(self.tokens_path.read_text(encoding="utf-8"))
+                    if len(cached) == len(self.child_documents):
+                        self.tokenized_corpus = cached
+                except Exception:
+                    logger.warning("[store] 分词缓存读取失败，将重建")
+            if not self.tokenized_corpus:
+                self.tokenized_corpus = [zh_tokenize(d.page_content) for d in self.child_documents]
+                self._save_tokens()
+
+    def save(self) -> None:
+        """全量落盘。顺序：先子块（行号真相）后索引，任何中断都可被加载期校验发现。"""
+        self.persist_dir.mkdir(parents=True, exist_ok=True)
+        self.child_path.write_text(
+            json.dumps(
+                [{"page_content": d.page_content, "metadata": d.metadata} for d in self.child_documents],
+                ensure_ascii=False,
+            ),
+            encoding="utf-8",
+        )
+        if self.index is not None:
+            faiss.write_index(self.index, str(self.index_path))
+        self.parent_path.write_text(json.dumps(self.parent_store, ensure_ascii=False), encoding="utf-8")
+        self.manifest_path.write_text(json.dumps(self.manifest, ensure_ascii=False, indent=1), encoding="utf-8")
+        self.meta_path.write_text(json.dumps(self.meta, ensure_ascii=False, indent=1), encoding="utf-8")
+        self._save_tokens()
+
+    def _save_tokens(self) -> None:
+        if self.tokenized_corpus:
+            self.tokens_path.write_text(json.dumps(self.tokenized_corpus, ensure_ascii=False), encoding="utf-8")
+
+    # ── 文档管理 ─────────────────────────────────────────
+
+    def has_document(self, doc_id: str, content_hash: str | None = None) -> bool:
+        info = self.manifest.get(doc_id)
+        if not info:
             return False
+        if content_hash is None:
+            return True
+        return info.get("content_hash") == content_hash
 
-        # 给每个 chunk 生成唯一 ID
-        for d in chunks:
-            if "chunk_uid" not in d.metadata:
-                d.metadata["chunk_uid"] = str(uuid.uuid4())
-
-        if self.store is None:
-            self.store = FAISS.from_documents(chunks, get_embed_model())
-        else:
-            self.store.add_documents(chunks)
-
-        self.child_documents.extend(chunks)
-        self.tokenized_corpus.extend(_zh_tokenize(d.page_content) for d in chunks)
-
-        self.manifest[md5] = file_info
-        self._save()
-        return True
-
-    def add_parent_child_documents(
-        self,
-        parent_docs: list[Document],
-        child_docs: list[Document],
-        file_info: dict,
-    ) -> bool:
-        """混合检索模式：添加父子分块。"""
-        md5 = file_info["md5"]
-        if md5 in self.manifest:
+    def add_document(self, parents: list[Document], children: list[Document], doc_info: dict) -> bool:
+        """新增一篇文档（父子块）。返回 False 表示已存在（幂等跳过）。"""
+        doc_id = doc_info["doc_id"]
+        if self.has_document(doc_id, doc_info.get("content_hash")):
             return False
+        if self.has_document(doc_id):
+            raise ValueError(f"doc_id 已存在但内容不同: {doc_id}（需先移除旧版，P7 快照机制处理）")
 
-        # 建立父块索引：使用调用方已设置的 parent_id（由 load_and_split_parent_child 生成）
-        for i, parent in enumerate(parent_docs):
-            pid = parent.metadata.get("parent_id") or str(uuid.uuid4())
-            parent.metadata["parent_id"] = pid
+        # 父块入库
+        for p in parents:
+            pid = p.metadata["parent_id"]
             self.parent_store[pid] = {
-                "page_content": parent.page_content,
-                "metadata": {k: v for k, v in parent.metadata.items() if k != "parent_id"},
+                "page_content": p.page_content,
+                "metadata": {k: v for k, v in p.metadata.items() if k != "parent_id"},
             }
 
-        # 子块链接到父块（子块应已从 load_and_split_parent_child 获得匹配的 parent_id）
-        for child in child_docs:
-            if "chunk_uid" not in child.metadata:
-                child.metadata["chunk_uid"] = str(uuid.uuid4())
+        # 子块向量化 + 追加到索引
+        if children:
+            t0 = time.time()
+            vectors = self.embed.embed_documents([c.page_content for c in children])
+            arr = np.asarray(vectors, dtype="float32")
+            if self.index is None:
+                self.index = faiss.IndexFlatL2(arr.shape[1])
+            if arr.shape[1] != self.index.d:
+                raise ValueError(f"嵌入维度不一致: 新向量 {arr.shape[1]} vs 索引 {self.index.d}")
+            self.index.add(arr)
+            self.child_documents.extend(children)
+            self.tokenized_corpus.extend(zh_tokenize(c.page_content) for c in children)
+            self._bm25 = None  # 失效缓存
+            logger.info("[store] %s: %d 子块向量化入库（%.1fs）", doc_id, len(children), time.time() - t0)
 
-        if self.store is None:
-            self.store = FAISS.from_documents(child_docs, get_embed_model())
-        else:
-            self.store.add_documents(child_docs)
-
-        self.child_documents.extend(child_docs)
-        self.tokenized_corpus.extend(_zh_tokenize(d.page_content) for d in child_docs)
-
-        self.manifest[md5] = file_info
-        self._save()
+        doc_info = dict(doc_info)
+        doc_info.update({"n_parents": len(parents), "n_children": len(children)})
+        self.manifest[doc_id] = doc_info
+        self.meta = {
+            "dim": self.index.d if self.index is not None else None,
+            "embed_model": get_settings().embed_api_model if get_settings().embed_mode == "api" else get_settings().embed_local_model,
+            "count": len(self.child_documents),
+            "pipeline_version": PIPELINE_VERSION,
+            "updated_at": time.strftime("%Y-%m-%dT%H:%M:%S"),
+        }
         return True
 
-    def search(self, query: str, k: int = None) -> list[Document]:
-        """简单向量检索。"""
-        if self.store is None:
-            return []
-        k = k or RETRIEVAL_K
-        return self.store.similarity_search(query, k=k)
+    # ── 检索 ─────────────────────────────────────────────
 
-    def get_document_content(self, md5: str) -> str | None:
-        """根据 MD5 获取原始文件内容。"""
-        info = self.manifest.get(md5)
+    def search_with_scores(self, query: str, k: int) -> list[tuple[Document, float]]:
+        """向量检索：返回 [(Document, L2 距离), ...]（距离越小越近）。"""
+        if self.is_empty:
+            return []
+        qv = np.asarray([self.embed.embed_query(query)], dtype="float32")
+        distances, indices = self.index.search(qv, min(k, self.index.ntotal))
+        out: list[tuple[Document, float]] = []
+        for dist, idx in zip(distances[0], indices[0]):
+            if idx < 0:
+                continue
+            out.append((self.child_documents[int(idx)], float(dist)))
+        return out
+
+    def bm25_rank(self, query: str, k: int) -> list[tuple[Document, float]]:
+        """BM25 检索：返回 [(Document, 分数), ...]（分数越大越相关）。"""
+        if not self.child_documents:
+            return []
+        if self._bm25 is None:
+            self._bm25 = BM25Okapi(self.tokenized_corpus)
+        q_tokens = zh_tokenize(query)
+        if not q_tokens:
+            return []
+        scores = self._bm25.get_scores(q_tokens)
+        top = np.argsort(scores)[::-1][:k]
+        return [(self.child_documents[int(i)], float(scores[int(i)])) for i in top]
+
+    # ── 文件 ─────────────────────────────────────────────
+
+    def get_parent(self, parent_id: str) -> dict[str, Any] | None:
+        return self.parent_store.get(parent_id)
+
+    def get_document_content(self, doc_id: str) -> str | None:
+        info = self.manifest.get(doc_id)
         if not info:
             return None
-        path = info.get("path", "")
-        if not os.path.isfile(path):
+        path = resolve_path(info.get("path", ""))
+        if not path.is_file():
             return None
         try:
-            with open(path, "r", encoding="utf-8") as f:
-                return f.read()
+            return path.read_text(encoding="utf-8")
         except Exception:
             return None
-
-    def get_file_info_by_md5(self, md5: str) -> dict | None:
-        return self.manifest.get(md5)
-
-    def clear(self):
-        """清空所有数据。"""
-        self.store = None
-        self.child_documents = []
-        self.tokenized_corpus = []
-        self.parent_store = {}
-        self.manifest = {}
-        # 清理磁盘文件
-        import shutil
-        if os.path.isdir(self.index_path):
-            shutil.rmtree(self.index_path, ignore_errors=True)
-
-
-# ===== 向后兼容别名（供 rag_service / hybrid_retriever 旧引用使用） =====
-VectorStoreService = VectorStore

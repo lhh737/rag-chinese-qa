@@ -1,0 +1,5 @@
+# 生成参数（模型 id / 端点走 .env：GEN_MODEL_ID、GEN_BASE_URL）
+temperature: 0.2
+max_tokens: 1024
+prompt_version: v1      # prompts/answer/{version}.md（prompt 版本注册表）
+enable_thinking: false  # 混合思考模型（deepseek-flash 等）默认关闭思考：快、省、输出稳定

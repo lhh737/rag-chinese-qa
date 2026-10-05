@@ -1,131 +1,171 @@
-"""
-统一 RAG 管线：支持 HyDE + 混合检索 + 简单检索三种模式。
+"""统一查询门面（设计 §5.3）：评测引擎 / FastAPI / Gradio / 评审查看器共用同一入口。
+
+    pipeline = RAGPipeline()
+    result = pipeline.query("问题")
+    result.answer / result.contexts / result.citations / result.trace
+
+评测对象与线上行为一致：所有入口都走这里。
 """
 from __future__ import annotations
 
-import os
+import asyncio
+import time
+from typing import Any, AsyncIterator
 
-from config.settings import UPLOAD_DIR
-from rag.document_loader import get_file_info, load_and_split, load_and_split_parent_child
-from rag.generator import generate
-from rag.hybrid_retriever import HybridRetriever
-from rag.hyde import generate_hypothetical_doc
-from rag.vector_store import VectorStore
-
-SYSTEM_PROMPT = "你是一个专业的中文文档问答助手。请根据提供的文档内容，准确、简洁地回答用户的问题。如果文档中没有相关信息，请如实告知。"
+from ragqa.config.loader import (
+    GenerationConfig,
+    RetrievalConfig,
+    load_generation_config,
+    load_retrieval_config,
+)
+from ragqa.generation.generator import GenerationSession, generate
+from ragqa.retrieval.hybrid import HybridRetriever
+from ragqa.retrieval.hyde import generate_hypothetical_doc
+from ragqa.retrieval.store import VectorStore
+from ragqa.trace import build_trace
+from ragqa.types import QueryResult, StreamChunk
+from ragqa.utils.logging import logger
 
 
 class RAGPipeline:
-    def __init__(self, use_hybrid: bool = True, use_hyde: bool = True):
-        """
-        Args:
-            use_hybrid: True 使用混合检索（BM25+向量+重排序+父子分块）。
-            use_hyde:   True 使用 HyDE — 先生成假设性答案再检索，可提升召回率。
-        """
-        os.makedirs(UPLOAD_DIR, exist_ok=True)
-        self.vector_store = VectorStore()
-        self.hybrid = HybridRetriever(self.vector_store) if use_hybrid else None
-        self.use_hybrid = use_hybrid
-        self.use_hyde = use_hyde and use_hybrid  # HyDE 依赖混合检索
+    def __init__(
+        self,
+        *,
+        retrieval_config: RetrievalConfig | None = None,
+        generation_config: GenerationConfig | None = None,
+        store: VectorStore | None = None,
+        reranker: Any | None = None,
+        gen_client: Any | None = None,
+    ) -> None:
+        self.retrieval_cfg = retrieval_config or load_retrieval_config()
+        self.generation_cfg = generation_config or load_generation_config()
+        self.store = store or VectorStore()
+        self.retriever = HybridRetriever(self.store, self.retrieval_cfg, reranker)
+        self._gen_client = gen_client  # 测试可注入；None 时工厂创建
+        self._async_gen_client = None  # 流式客户端（懒创建）
 
-    # ── 文档管理 ──────────────────────────────────────────
-
-    def upload_and_index(self, filepath: str) -> tuple[bool, str]:
-        if not os.path.isfile(filepath):
-            return False, f"文件不存在: {filepath}"
-
-        ext = os.path.splitext(filepath)[1].lower()
-        if ext not in (".txt", ".pdf"):
-            return False, f"不支持的文件格式: {ext}，仅支持 .txt / .pdf"
-
-        try:
-            info = get_file_info(filepath)
-
-            if self.use_hybrid:
-                parent_docs, child_docs = load_and_split_parent_child(filepath)
-                if not child_docs:
-                    return False, "文档解析失败，未能提取到文本内容"
-                ok = self.vector_store.add_parent_child_documents(parent_docs, child_docs, info)
-            else:
-                chunks = load_and_split(filepath)
-                if not chunks:
-                    return False, "文档解析失败，未能提取到文本内容"
-                ok = self.vector_store.add_documents(chunks, info)
-
-            if not ok:
-                return False, f"文档已存在: {info['filename']}"
-            chunk_count = len(child_docs) if self.use_hybrid else len(chunks)  # type: ignore
-            return True, f"已索引 {chunk_count} 个文本块"
-        except Exception as e:
-            return False, f"处理失败: {str(e)}"
-
-    # ── 检索核心 ──────────────────────────────────────────
-
-    def _retrieve(self, question: str) -> tuple[str, list[dict]]:
-        """
-        根据配置模式执行检索，返回 (context, provenance)。
-        """
-        if not self.hybrid:
-            # 简单向量检索
-            docs = self.vector_store.search(question)
-            if not docs:
-                return "", []
-            context = "\n\n".join(d.page_content for d in docs)
-            provenance = [
-                {"source": d.metadata.get("source", ""), "excerpt": d.page_content[:200]}
-                for d in docs
-            ]
-            return context, provenance
-
-        # ---- HyDE：先用 LLM 生成假设性答案作为检索 query ----
-        if self.use_hyde:
-            hyde_query = generate_hypothetical_doc(question)
-        else:
-            hyde_query = question
-
-        # 混合检索（BM25 + 向量 + 重排序）
-        return self.hybrid.retrieve_for_rag(hyde_query)
-
-    # ── 问答 ──────────────────────────────────────────────
-
-    def query(self, question: str) -> str:
-        if self.vector_store.is_empty:
-            return "知识库为空，请先上传文档。"
-
-        context, provenance = self._retrieve(question)
-        if not context.strip():
-            return "未找到相关文档内容。"
-
-        answer = generate(SYSTEM_PROMPT, context=context, question=question)
-
-        # 附加溯源信息
-        if provenance:
-            lines = [answer, "\n--- 参考来源 ---"]
-            seen = set()
-            for s in provenance:
-                src = s.get("source", "")
-                if src and src not in seen:
-                    seen.add(src)
-                    lines.append(f"- {src}")
-            return "\n".join(lines)
-        return answer
-
-    def query_with_sources(self, question: str) -> dict:
-        """返回 {answer, sources} 结构，供 UI 展示详细溯源。"""
-        if self.vector_store.is_empty:
-            return {"answer": "知识库为空，请先上传文档。", "sources": []}
-
-        context, provenance = self._retrieve(question)
-        if not context.strip():
-            return {"answer": "未找到相关文档内容。", "sources": []}
-
-        answer = generate(SYSTEM_PROMPT, context=context, question=question)
-        return {"answer": answer, "sources": provenance}
-
-    # ── 文件列表 ──────────────────────────────────────────
+    # ── 文档管理（UI 用）─────────────────────────────────
 
     def get_file_list(self) -> list[dict]:
-        return self.vector_store.file_list
+        return self.store.file_list
 
-    def get_document_content(self, md5: str) -> str | None:
-        return self.vector_store.get_document_content(md5)
+    def get_document_content(self, doc_id: str) -> str | None:
+        return self.store.get_document_content(doc_id)
+
+    # ── 检索（HyDE → 混合检索）──────────────────────────
+
+    def _retrieve(self, question: str, cfg: RetrievalConfig):
+        hyde = generate_hypothetical_doc(question, cfg.hyde, client=self._gen_client)
+        retrieval = self.retriever.retrieve(hyde.query)
+        return retrieval, hyde
+
+    def _empty_answer(self, question: str, cfg: RetrievalConfig, msg: str, t0: float) -> QueryResult:
+        trace = build_trace(
+            question=question,
+            config_id=cfg.config_id(),
+            prompt_version=self.generation_cfg.prompt_version,
+            index_meta=self.store.meta,
+            latency_total_ms=(time.perf_counter() - t0) * 1000,
+        )
+        return QueryResult(answer=msg, contexts=[], citations=[], trace=trace)
+
+    # ── 查询 ─────────────────────────────────────────────
+
+    def query(
+        self,
+        question: str,
+        *,
+        config: RetrievalConfig | None = None,
+        prompt_version: str | None = None,
+    ) -> QueryResult:
+        cfg = config or self.retrieval_cfg
+        t0 = time.perf_counter()
+
+        if self.store.is_empty:
+            return self._empty_answer(question, cfg, "知识库为空，请先导入文档。", t0)
+
+        retrieval, hyde = self._retrieve(question, cfg)
+        generation = None
+        if retrieval.blocks:
+            generation = generate(
+                question,
+                retrieval.context,
+                retrieval.blocks,
+                prompt_version=prompt_version,
+                cfg=self.generation_cfg,
+                client=self._gen_client,
+            )
+            answer = generation.answer
+        else:
+            answer = "未找到相关文档内容。"
+            logger.info("[core] 无检索结果: %s", question)
+
+        trace = build_trace(
+            question=question,
+            config_id=cfg.config_id(),
+            hyde=hyde,
+            retrieval=retrieval,
+            generation=generation,
+            prompt_version=prompt_version or self.generation_cfg.prompt_version,
+            index_meta=self.store.meta,
+            latency_total_ms=(time.perf_counter() - t0) * 1000,
+        )
+        return QueryResult(
+            answer=answer,
+            contexts=retrieval.blocks,
+            citations=generation.citations if generation else [],
+            trace=trace,
+        )
+
+    async def astream(
+        self,
+        question: str,
+        *,
+        config: RetrievalConfig | None = None,
+        prompt_version: str | None = None,
+    ) -> AsyncIterator[StreamChunk]:
+        """流式查询：增量 yield delta；最后一个块 done=True 且携带完整 QueryResult。"""
+        cfg = config or self.retrieval_cfg
+        t0 = time.perf_counter()
+
+        if self.store.is_empty:
+            yield StreamChunk(done=True, result=self._empty_answer(question, cfg, "知识库为空，请先导入文档。", t0))
+            return
+
+        # HyDE 与检索是阻塞调用，放到线程池避免卡住事件循环
+        retrieval, hyde = await asyncio.to_thread(self._retrieve, question, cfg)
+        if not retrieval.blocks:
+            yield StreamChunk(done=True, result=self._empty_answer(question, cfg, "未找到相关文档内容。", t0))
+            return
+
+        session = GenerationSession(
+            question,
+            retrieval.context,
+            retrieval.blocks,
+            prompt_version=prompt_version,
+            cfg=self.generation_cfg,
+            client=self._async_gen_client,
+        )
+        async for delta in session:
+            yield StreamChunk(delta=delta)
+
+        generation = session.result
+        trace = build_trace(
+            question=question,
+            config_id=cfg.config_id(),
+            hyde=hyde,
+            retrieval=retrieval,
+            generation=generation,
+            prompt_version=prompt_version or self.generation_cfg.prompt_version,
+            index_meta=self.store.meta,
+            latency_total_ms=(time.perf_counter() - t0) * 1000,
+        )
+        yield StreamChunk(
+            done=True,
+            result=QueryResult(
+                answer=generation.answer if generation else "",
+                contexts=retrieval.blocks,
+                citations=generation.citations if generation else [],
+                trace=trace,
+            ),
+        )

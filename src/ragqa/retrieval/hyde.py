@@ -1,11 +1,17 @@
-"""
-HyDE (Hypothetical Document Embeddings)：先生成假设性答案，再用它做检索。
+"""HyDE（Hypothetical Document Embeddings）：先生成假设性答案，再用它做检索。
+
+失败不阻塞：任何异常都回退为原始 query，并在 HydeResult.error 中留痕（进 trace）。
 """
 from __future__ import annotations
 
-from rag.generator import generate_simple
+import time
 
-# HyDE 提示词：让 LLM 生成一段貌似真实文档的段落（假设性答案）
+from ragqa.config.loader import HydeConfig
+from ragqa.models.factory import get_gen_client, thinking_off_extra_body
+from ragqa.types import HydeResult
+from ragqa.utils.llm import usage_dict
+from ragqa.utils.logging import logger
+
 HYDE_PROMPT = (
     "请根据以下问题，撰写一段详细、专业的中文段落来回答该问题。"
     "要求：内容详实、包含具体技术细节、用第三人称客观陈述、"
@@ -14,19 +20,37 @@ HYDE_PROMPT = (
 )
 
 
-def generate_hypothetical_doc(query: str, max_tokens: int = 256) -> str:
-    """
-    用 LLM 生成一段假设性文档（HyDE）。
-    这段文档不是最终答案，而是作为检索 query，去向量库中匹配真正相关的文档。
-    """
-    prompt = HYDE_PROMPT.format(query=query)
+def generate_hypothetical_doc(query: str, cfg: HydeConfig | None = None, client=None) -> HydeResult:
+    cfg = cfg or HydeConfig()
+    if not cfg.enabled:
+        return HydeResult(enabled=False, used=False, query=query)
+
+    t0 = time.time()
     try:
-        hypo = generate_simple(prompt)
-        if hypo and len(hypo.strip()) > 10:
-            return hypo.strip()
-        return query
-    except Exception as e:
-        # 如果 LLM 调用失败，fallback 原 query
-        import logging
-        logging.getLogger("rag").warning("[HyDE] 生成假设文档失败，回退原始 query: %s", e)
-        return query
+        client = client or get_gen_client()
+        kwargs = {}
+        if not cfg.enable_thinking:
+            kwargs["extra_body"] = thinking_off_extra_body()
+        resp = client.chat.completions.create(
+            model=_gen_model(),
+            messages=[{"role": "user", "content": HYDE_PROMPT.format(query=query)}],
+            temperature=cfg.temperature,
+            max_tokens=cfg.max_tokens,
+            **kwargs,
+        )
+        latency = (time.time() - t0) * 1000
+        output = (resp.choices[0].message.content or "").strip()
+        usage = usage_dict(resp)
+        if output and len(output) > 10:
+            return HydeResult(enabled=True, used=True, query=output, output=output, usage=usage, latency_ms=latency)
+        return HydeResult(enabled=True, used=False, query=query, output=output or None,
+                          error="HyDE 输出过短，回退原 query", usage=usage, latency_ms=latency)
+    except Exception as e:  # noqa: BLE001 —— 降级设计：不阻塞主链路
+        logger.warning("[HyDE] 生成失败，回退原 query: %s", e)
+        return HydeResult(enabled=True, used=False, query=query, error=str(e), latency_ms=(time.time() - t0) * 1000)
+
+
+def _gen_model() -> str:
+    from ragqa.config.settings import get_settings
+
+    return get_settings().gen_model

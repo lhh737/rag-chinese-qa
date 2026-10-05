@@ -1,0 +1,26 @@
+# 检索与分块参数（一切可对照：消融 / RRF 扫描 / 迭代实验的自变量都在这里）
+# 分块（父子块：父块还原上下文，子块做检索）
+parent_chunk_size: 1200
+parent_chunk_overlap: 150
+child_chunk_size: 400
+child_chunk_overlap: 40
+separators: ["\n\n", "\n", "。", ".", "！", "？", "!", "?", " ", ""]
+
+# 双路召回
+vector_fetch_k: 24
+bm25_fetch_k: 24
+
+# 融合：rrf（默认，k 支持扫描）| merge（旧版合并去重，仅依赖迁移对照实验用）
+fusion: rrf
+rrf_k: 60
+
+# 重排与动态 TopK：最终送入模型的父块数（base 与 max 之间由规则动态调整）
+rerank_top_n: 12
+base_context_k: 4
+max_context_k: 8
+
+# HyDE（假设性文档嵌入）
+hyde:
+  enabled: true
+  max_tokens: 256
+  temperature: 0.0

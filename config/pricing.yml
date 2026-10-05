@@ -1,0 +1,28 @@
+# 成本估算单价（元 / 1M tokens），2026-10 快照
+# 仅影响成本口径（报告"分阶段成本"），不影响任何指标；官方调价后更新此文件即可。
+# 来源：百炼 embedding 官方价目（0.000125 元/千 token）；DeepSeek 峰谷价目；
+#      qwen3.7-text-rerank 未查到公开价 → placeholder，待核实。
+embed:
+  qwen3.7-text-embedding-flash:
+    input: 0.125
+
+# DeepSeek 峰谷计价：高峰=北京时间周一至周五 9:00-12:00、14:00-18:00，其余为空闲
+generation:
+  deepseek-flash:
+    input_idle: 1.0
+    input_peak: 2.0
+    output_idle: 4.0
+    output_peak: 8.0
+    cache_hit_idle: 0.02
+    cache_hit_peak: 0.04
+  _default:
+    input_idle: 1.0
+    input_peak: 1.0
+    output_idle: 4.0
+    output_peak: 4.0
+
+rerank:
+  qwen3.7-text-rerank:
+    input: 0.8
+  _default:
+    input: 0.8
