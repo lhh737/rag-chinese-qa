@@ -93,17 +93,22 @@
 > 所有比例型指标**默认带 Wilson 95% 区间**；对照实验用**配对检验**（McNemar），
 > 禁止"区间重叠目测"判显著。
 
-## 9. 归因标签（`attribution`，P3 错误分析后定稿；以下为初始假设）
+## 9. 归因标签（`attribution` · **taxonomy v1，P3 错误分析定稿**）
 
-| 标签 | 中文名 | 自动判定规则（初始） | 子标签 | 修复方向 |
+> 定稿依据：`eval_results/analysis/error_analysis_v1.md`（60 条 trace 全量开放编码，19 条失败聚类）。
+> 相对初始 6 类假设的修订：新增 `query_rewrite_drift` / `premise_not_corrected`；
+> `ranking_poor` 合并入 `retrieval_miss.ranked_below_cutoff`；`hallucination`（生成幻觉）本轮剔除（零样本），
+> `omission` 保留观察；`refusal_error` 拆分出 `generation_synthesis_failure`。
+
+| 标签 | 中文名 | 判定/子标签 | 修复方向 | P3 频次 |
 |---|---|---|---|---|
-| `retrieval_miss` | 检索失败 | Recall@5 = 0 | `not_recalled`（完全未召回）/ `ranked_below_cutoff`（召回了但排在截断线外） | 切分/embedding/融合/top-k |
-| `ranking_poor` | 排序差 | 支撑块进了候选池，但重排后落于截断线外 | — | 重排参数/top-k |
-| `hallucination` | 生成幻觉 | 检索 ≥0.8 且 faithfulness=fail | — | prompt/模型 |
-| `omission` | 生成遗漏 | 检索 ≥0.8 且 faithfulness=pass 且 correctness=fail | — | 上下文呈现/prompt |
-| `refusal_error` | 拒答错误 | 库外未拒 / 质量题误拒 | — | 拒答策略 |
-| `citation_error` | 引用错误 | citation_accuracy=fail 且其余正常 | — | 引用约束 prompt |
-| （新增类） | — | P3 开放编码后允许合并/新增/剔除，修订进 taxonomy 版本 | — | — |
+| `retrieval_miss` | 检索失败 | 子标签 `not_recalled`（含**多跳单边**：第二来源整篇未召回）/ `ranked_below_cutoff`（在池内但被动态 TopK 截掉） | 切分/embedding/融合/top-k/动态 TopK | 8（B 6 + C 2） |
+| `query_rewrite_drift` | 查询改写漂移 | HyDE 幻觉/偏移带偏检索（编造文献/数字/方向），正确来源未召回 | HyDE prompt 约束/回退策略 | 6 |
+| `generation_synthesis_failure` | 生成综合失败 | 上下文充分却拒答/未综合（≈误拒的可回答题） | prompt 综合指令/多版本 A/B | 2 |
+| `premise_not_corrected` | 错误前提未纠正 | 对抗题：证据在手却以"无法回答"回避，未直接纠正 | 对抗处理 prompt | 2 |
+| `citation_error` | 引用错误 | 编号越界/张冠李戴 | 引用约束 prompt + 输出校验 | 1 |
+| `omission` | 生成遗漏 | 检索好、要点缺（**本轮零独立样本，保留观察**） | 上下文呈现/prompt | 0 |
+| `hallucination` | 生成幻觉 | （**本轮零样本**；风险已前移至 HyDE，见 query_rewrite_drift） | — | 0 |
 
 ## 10. Run Registry 标签（运行登记）
 
