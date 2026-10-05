@@ -238,7 +238,11 @@ function renderReview(it){
   const rec = ANNO[KEYS[IDX]] || {};
   const checks = rec.checks || {};
   const docs = (it.supporting_docs||[]).join(", ") || "—";
+  const prior = it.prior_decision ? `<div class="card" style="border-color:#d97706"><b class="warn">第二轮精审</b> · 上一轮判定：<b>${esc(it.prior_decision)}</b>
+      ${it.prior_reason? `<div class="muted">上一轮理由：${esc(it.prior_reason)}</div>`:""}
+      <div class="muted">本轮已展示<u>完整来源段落</u>${(it.supporting_docs||[]).length>1?"（含来源 A/B 双文档）":""}，请据完整原文重新判断。</div></div>` : "";
   return `
+  ${prior}
   <div class="card">
     <div>${badge(it.id)}${badge(it.type||"")}${badge(it.split||"")}<span class="muted">匹配分 ${it.match_score??"—"} · 期望行为 ${esc(it.expected_behavior||"—")}</span></div>
     <div class="q">${esc(it.question||"")}</div>
