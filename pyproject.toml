@@ -18,7 +18,7 @@ dependencies = [
     "rank-bm25==0.2.2",
     "numpy>=2.0",
     "PyYAML>=6.0",
-    "pydantic>=2.10",
+    "pydantic>=2.10,<2.11",  # 上限：gradio 5.9.1 的 gradio-client 不兼容 pydantic>=2.11 的 JSON Schema 形式
     "pydantic-settings>=2.14",
     "requests>=2.31",
     "gradio==5.9.1",
