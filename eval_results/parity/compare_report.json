@@ -1,0 +1,344 @@
+{
+ "docs": {
+  "1706.03762": {
+   "n_parents": [
+    41,
+    41
+   ],
+   "n_children": [
+    141,
+    141
+   ],
+   "parents": {
+    "old_n": 41,
+    "new_n": 41,
+    "matched": 41,
+    "rate": 1.0
+   },
+   "children": {
+    "old_n": 141,
+    "new_n": 141,
+    "matched": 141,
+    "rate": 1.0
+   }
+  },
+  "2005.11401": {
+   "n_parents": [
+    70,
+    70
+   ],
+   "n_children": [
+    235,
+    235
+   ],
+   "parents": {
+    "old_n": 70,
+    "new_n": 70,
+    "matched": 70,
+    "rate": 1.0
+   },
+   "children": {
+    "old_n": 235,
+    "new_n": 235,
+    "matched": 235,
+    "rate": 1.0
+   }
+  },
+  "2005.14165": {
+   "n_parents": [
+    262,
+    262
+   ],
+   "n_children": [
+    875,
+    875
+   ],
+   "parents": {
+    "old_n": 262,
+    "new_n": 262,
+    "matched": 262,
+    "rate": 1.0
+   },
+   "children": {
+    "old_n": 875,
+    "new_n": 875,
+    "matched": 875,
+    "rate": 1.0
+   }
+  },
+  "2204.05862": {
+   "n_parents": [
+    255,
+    255
+   ],
+   "n_children": [
+    876,
+    876
+   ],
+   "parents": {
+    "old_n": 255,
+    "new_n": 255,
+    "matched": 255,
+    "rate": 1.0
+   },
+   "children": {
+    "old_n": 876,
+    "new_n": 876,
+    "matched": 876,
+    "rate": 1.0
+   }
+  },
+  "2205.01068": {
+   "n_parents": [
+    100,
+    100
+   ],
+   "n_children": [
+    332,
+    332
+   ],
+   "parents": {
+    "old_n": 100,
+    "new_n": 100,
+    "matched": 100,
+    "rate": 1.0
+   },
+   "children": {
+    "old_n": 332,
+    "new_n": 332,
+    "matched": 332,
+    "rate": 1.0
+   }
+  },
+  "2302.13971": {
+   "n_parents": [
+    90,
+    90
+   ],
+   "n_children": [
+    314,
+    314
+   ],
+   "parents": {
+    "old_n": 90,
+    "new_n": 90,
+    "matched": 90,
+    "rate": 1.0
+   },
+   "children": {
+    "old_n": 314,
+    "new_n": 314,
+    "matched": 314,
+    "rate": 1.0
+   }
+  },
+  "2303.08774": {
+   "n_parents": [
+    307,
+    307
+   ],
+   "n_children": [
+    1009,
+    1009
+   ],
+   "parents": {
+    "old_n": 307,
+    "new_n": 307,
+    "matched": 307,
+    "rate": 1.0
+   },
+   "children": {
+    "old_n": 1009,
+    "new_n": 1009,
+    "matched": 1009,
+    "rate": 1.0
+   }
+  },
+  "2312.10997": {
+   "n_parents": [
+    112,
+    112
+   ],
+   "n_children": [
+    406,
+    406
+   ],
+   "parents": {
+    "old_n": 112,
+    "new_n": 112,
+    "matched": 112,
+    "rate": 1.0
+   },
+   "children": {
+    "old_n": 406,
+    "new_n": 406,
+    "matched": 406,
+    "rate": 1.0
+   }
+  },
+  "llm_intro": {
+   "n_parents": [
+    1,
+    1
+   ],
+   "n_children": [
+    2,
+    2
+   ],
+   "parents": {
+    "old_n": 1,
+    "new_n": 1,
+    "matched": 1,
+    "rate": 1.0
+   },
+   "children": {
+    "old_n": 2,
+    "new_n": 2,
+    "matched": 2,
+    "rate": 1.0
+   }
+  },
+  "test_transformer": {
+   "n_parents": [
+    1,
+    1
+   ],
+   "n_children": [
+    2,
+    2
+   ],
+   "parents": {
+    "old_n": 1,
+    "new_n": 1,
+    "matched": 1,
+    "rate": 1.0
+   },
+   "children": {
+    "old_n": 2,
+    "new_n": 2,
+    "matched": 2,
+    "rate": 1.0
+   }
+  }
+ },
+ "queries": [
+  {
+   "q": "Transformer 的注意力机制计算复杂度是多少？",
+   "vector": {
+    "old_n": 24,
+    "new_n": 24,
+    "order_match": false,
+    "set_overlap": 1.0
+   },
+   "bm25": {
+    "old_n": 24,
+    "new_n": 24,
+    "order_match": true,
+    "set_overlap": 1.0
+   },
+   "final": {
+    "old_n": 4,
+    "new_n": 4,
+    "order_match": true,
+    "set_overlap": 1.0
+   },
+   "final_sources_match": true
+  },
+  {
+   "q": "RAG 是什么？它解决了什么问题？",
+   "vector": {
+    "old_n": 24,
+    "new_n": 24,
+    "order_match": false,
+    "set_overlap": 0.92
+   },
+   "bm25": {
+    "old_n": 24,
+    "new_n": 24,
+    "order_match": true,
+    "set_overlap": 1.0
+   },
+   "final": {
+    "old_n": 4,
+    "new_n": 4,
+    "order_match": false,
+    "set_overlap": 0.6
+   },
+   "final_sources_match": true
+  },
+  {
+   "q": "GPT-3 模型有多少参数？",
+   "vector": {
+    "old_n": 24,
+    "new_n": 24,
+    "order_match": false,
+    "set_overlap": 0.92
+   },
+   "bm25": {
+    "old_n": 24,
+    "new_n": 24,
+    "order_match": true,
+    "set_overlap": 1.0
+   },
+   "final": {
+    "old_n": 4,
+    "new_n": 4,
+    "order_match": true,
+    "set_overlap": 1.0
+   },
+   "final_sources_match": true
+  },
+  {
+   "q": "LLaMA 模型的训练数据规模是多少？",
+   "vector": {
+    "old_n": 24,
+    "new_n": 24,
+    "order_match": false,
+    "set_overlap": 0.92
+   },
+   "bm25": {
+    "old_n": 24,
+    "new_n": 24,
+    "order_match": true,
+    "set_overlap": 1.0
+   },
+   "final": {
+    "old_n": 4,
+    "new_n": 4,
+    "order_match": true,
+    "set_overlap": 1.0
+   },
+   "final_sources_match": true
+  },
+  {
+   "q": "什么是大语言模型？",
+   "vector": {
+    "old_n": 24,
+    "new_n": 24,
+    "order_match": false,
+    "set_overlap": 0.92
+   },
+   "bm25": {
+    "old_n": 24,
+    "new_n": 24,
+    "order_match": true,
+    "set_overlap": 1.0
+   },
+   "final": {
+    "old_n": 4,
+    "new_n": 4,
+    "order_match": true,
+    "set_overlap": 1.0
+   },
+   "final_sources_match": true
+  }
+ ],
+ "summary": {
+  "chunk_boundary_match_rate": 1.0,
+  "n_chunk_positions": 5431,
+  "all_query_bm25_order_identical": true,
+  "all_query_final_sources_identical": true,
+  "mean_vector_set_overlap": 0.936,
+  "vector_order_note": "向量距离存在嵌入 API 数值波动（非确定性），排序仅在近并列处扰动；按集合重叠与最终上下文评估"
+ }
+}

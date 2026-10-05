@@ -1,16 +1,19 @@
 <h1 align="center">RAG-Chinese-QA</h1>
 <p align="center">
-  A Chinese-document RAG QA system built on LangChain<br>
-  <b>Hybrid retrieval · HyDE · Reranking · Answer citation</b>
+  A Chinese-document RAG QA system · <b>evaluation-first quality engineering (upgrade in progress)</b><br>
+  <b>Hybrid retrieval (RRF) · HyDE · Reranking · Parent-child chunks · Inline [n] citations</b>
 </p>
 <p align="center">
-  <img src="https://img.shields.io/badge/python-3.10+-blue?logo=python" alt="Python">
+  <img src="https://img.shields.io/badge/python-3.11+-blue?logo=python" alt="Python">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
-  <img src="https://img.shields.io/badge/langchain-1.2-orange" alt="LangChain">
+  <img src="https://img.shields.io/badge/uv-managed-de5fe9" alt="uv">
 </p>
 <p align="center">
   <a href="README.md">中文</a> | <a href="README.en.md">English</a>
 </p>
+
+> 🚧 **Upgrade in progress**: the project is being upgraded into an evaluation-first RAG quality system (construct → evaluate → observe → attribute → iterate → secure).
+> P0 done: `src/ragqa` restructure (unified facade + structured traces + LangChain-free dependencies + full index rebuild); eval framework and datasets under construction. README will be fully rewritten at the final stage.
 
 ---
 
@@ -26,21 +29,20 @@ Compared to plain vector-search pipelines, the core difference is a **three-stag
 
 ## Quick Start
 
-> Prerequisites: Python 3.10+, a [DashScope API key](https://dashscope.aliyuncs.com/) (Alibaba Cloud Model Studio — free quota on sign-up).
+> Prerequisites: Python 3.11+ and [uv](https://docs.astral.sh/uv/); two API keys: [DashScope](https://dashscope.aliyuncs.com/) (embeddings / rerank) and [DeepSeek](https://platform.deepseek.com/) (generation).
 
 ```bash
 git clone https://github.com/lhh737/rag-chinese-qa.git
 cd rag-chinese-qa
 
-python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
+uv sync                            # create .venv and install dependencies
+cp .env.example .env               # set DASHSCOPE_API_KEY and GEN_API_KEY
 
-cp .env.example .env               # edit .env, set DASHSCOPE_API_KEY
-python mvp_app.py                  # opens http://127.0.0.1:7860
+uv run ragqa ingest                # build the index (105 papers + Chinese docs; idempotent, resumable)
+uv run python apps/gradio_ui.py    # opens http://127.0.0.1:7860
 ```
 
-Upload documents → ask questions → get answers with source citations.
+Upload documents → ask questions → get answers with inline `[n]` citations and sources.
 
 ---
 
@@ -53,13 +55,13 @@ User question
   │                closing the semantic gap
   │
   ├─→ Coarse recall  FAISS dense (×24)   ─┐
-  │                  BM25 sparse (×24)   ─┤  merge & dedup → ~50 candidates
+  │                  BM25 sparse (×24)   ─┤  RRF fusion (k configurable) → ~48 candidates
   │                                      ┘
   ├─→ Rerank       Cross-Encoder → rescore → top 12
   │
   ├─→ Restore      child chunk hit → associate parent chunk → 4–8 dynamic blocks
   │
-  └─→ Generate     Qwen-Max + context → answer + citations
+  └─→ Generate     DeepSeek + context → answer + inline [n] citations
 ```
 
 ---
@@ -68,11 +70,11 @@ User question
 
 ### Hybrid retrieval
 
-Dense retrieval alone misses exact terminology; keyword retrieval alone misses paraphrases. Both run in parallel, then merge and deduplicate:
+Dense retrieval alone misses exact terminology; keyword retrieval alone misses paraphrases. Both run in parallel, fused with **RRF (Reciprocal Rank Fusion)**:
 
 | Path | Implementation | Strength |
 |------|----------------|----------|
-| Dense | DashScope `text-embedding-async-v2` / BGE-M3 + FAISS | Paraphrases, cross-paragraph semantics |
+| Dense | DashScope `qwen3.7-text-embedding-flash` / BGE-M3 + faiss-cpu | Paraphrases, cross-paragraph semantics |
 | Sparse | jieba tokenisation + BM25Okapi inverted index | Exact hits on names, model numbers, jargon |
 
 ### HyDE
@@ -90,11 +92,11 @@ Small chunks retrieve precisely but lose context; large chunks keep semantics bu
 
 ### Reranking
 
-The merged candidate pool (~50) is scored pairwise by a cross-encoder computing `(query, chunk)` relevance, then truncated to top 12. Cross-encoders are far more precise than dual-tower embeddings — query and chunk are fed together through full cross-attention.
+The RRF-fused candidate pool (~48) is scored pairwise by the rerank model computing `(query, chunk)` relevance, then truncated to top 12. Rerankers are far more precise than dual-tower embeddings — query and chunk are fed together through cross-attention.
 
 | Backend | Model | When to use |
 |---------|-------|-------------|
-| DashScope API | `gte-rerank-v2` | No deployment, 1M free tokens |
+| DashScope API | `qwen3.7-text-rerank` | No deployment, pay-as-you-go |
 | Local | `BAAI/bge-reranker-base` | Offline, ~1GB GPU memory |
 
 ### Dynamic Top-K
@@ -123,24 +125,28 @@ RERANK_MODE=api                  RERANK_MODE=local
 
 | File | Port | Purpose |
 |------|------|---------|
-| `mvp_app.py` | 7860 | Daily QA: upload + chat in one page, quick startup |
-| `gradio_app.py` | 7862 | Research management: batch-import papers/, document preview, file listing |
+| `apps/gradio_ui.py` | 7860 | Single entry: upload / batch-import papers/, chat with [n] citations, document viewer |
 
-### Scripts
+### CLI
 
 ```bash
+uv run ragqa ingest                     # papers/ → knowledge base (idempotent, resumable)
+uv run ragqa documents                  # list indexed documents
+uv run ragqa query "What is RAG?"       # single query (--trace-out to persist the trace)
+uv run ragqa smoke                      # smoke: small index + 5 queries + Recall@5
 python scripts/fetch_papers.py --topic rag --max-per-topic 20   # batch-download from arXiv
-python scripts/batch_import.py                                   # papers/ → knowledge base
-python scripts/download_bge.py                                   # local BGE models (~3.2 GB)
+python scripts/download_bge.py          # local BGE models (~3.2 GB, optional offline mode)
 ```
 
 ### Retrieval tuning
 
-Edit `config/faiss.yml`:
+Edit `config/retrieval.yml`:
 
 ```yaml
 vector_fetch_k: 24       # dense recall count
 bm25_fetch_k: 24         # BM25 recall count
+fusion: rrf              # fusion strategy (rrf | merge)
+rrf_k: 60                # RRF parameter
 rerank_top_n: 12         # kept after reranking
 base_context_k: 4        # minimum context blocks
 max_context_k: 8         # maximum context blocks
@@ -157,32 +163,28 @@ child_chunk_size: 400    # child chunk size (chars)
 ## Project Structure
 
 ```
+├── src/ragqa/
+│   ├── core.py                  # RAGPipeline unified facade (evals / UI / API share it)
+│   ├── cli.py                   # CLI: ingest / documents / query / smoke
+│   ├── trace.py                 # Trace Schema v1 (JSONL) + per-stage cost accounting
+│   ├── types.py                 # Core dataclasses (Document / ContextBlock / Citation…)
+│   ├── config/                  # pydantic-settings + YAML config loading
+│   ├── ingestion/               # Parsing (pypdf) + sanitising + custom splitter + pipeline
+│   ├── retrieval/               # direct faiss + dual-path recall (RRF) + rerank + HyDE
+│   ├── generation/              # prompt registry + [n] citation parsing + generation/streaming
+│   └── models/                  # Model factory: DashScope embeddings/rerank + DeepSeek generation
+├── apps/gradio_ui.py            # Gradio single entry (7860)
+├── prompts/answer/v1.md         # Answer prompt (versioned registry)
 ├── config/
-│   ├── settings.py              # Environment parsing — single config entry point
-│   ├── faiss.yml                # Retrieval hyperparameters
-│   └── rag.yml                  # Model and generation parameters
-├── model/
-│   ├── factory.py               # Model factory: API/local switch + LRU cache
-│   └── dashscope_embedding.py   # DashScope embeddings adapted to LangChain
-├── rag/
-│   ├── pipeline.py              # RAGPipeline unified entry point
-│   ├── hybrid_retriever.py      # FAISS + BM25 recall + reranker + dynamic top-k
-│   ├── hyde.py                  # HyDE hypothetical document generation
-│   ├── vector_store.py          # FAISS index + parent-child persistence + file listing
-│   ├── document_loader.py       # PDF/TXT loading + parent-child chunking
-│   └── generator.py             # Qwen OpenAI-compatible API wrapper
-├── scripts/
-│   ├── fetch_papers.py          # arXiv batch download (multi-topic, dedup, resume)
-│   ├── batch_import.py          # Batch-import documents into the knowledge base
-│   ├── download_bge.py          # BGE-M3 + BGE-Reranker download (CN mirrors first)
-│   └── download_models.py       # Generic HuggingFace model downloader
-├── prompts/
-│   └── rag_summarize.txt        # RAG system prompt (with citation constraints)
-├── utils/                       # Logging, YAML parsing, path helpers
+│   ├── retrieval.yml            # Retrieval hyperparameters (RRF k / fusion / top-k / chunking)
+│   ├── generation.yml           # Generation parameters
+│   └── pricing.yml              # Cost estimation rates (CNY per 1M tokens)
+├── tests/                       # Offline pytest suite (fake embeddings, no API key needed)
+├── scripts/                     # Paper download + dependency-migration parity experiments
 ├── data/papers/                 # Knowledge-base papers (curated set included)
-├── mvp_app.py                   # Gradio minimal entry point
-├── gradio_app.py                # Gradio full entry point
-└── requirements.txt
+├── eval_results/                # Run registry and reports (under construction, P1+)
+├── decisions/                   # Decision records (DR)
+└── pyproject.toml  uv.lock
 ```
 
 ---
@@ -192,13 +194,13 @@ child_chunk_size: 400    # child chunk size (chars)
 <details>
 <summary><b>How do I get an API key?</b></summary>
 
-Go to the [Alibaba Cloud Model Studio console](https://dashscope.aliyuncs.com/) and create one under "API-KEY management". New users receive free quotas: text-embedding-async-v2 (20M tokens), gte-rerank-v2 (1M tokens), qwen-max (1M tokens).
+Two keys are needed: ① create one under "API-KEY management" in the [Alibaba Cloud Model Studio console](https://dashscope.aliyuncs.com/) (for embeddings / rerank); ② create one on the [DeepSeek platform](https://platform.deepseek.com/) (for generation). Both are pay-as-you-go with free quotas for new users.
 </details>
 
 <details>
 <summary><b>Which file formats are supported?</b></summary>
 
-PDF and TXT. PDFs are text-extracted with PyPDFLoader; scanned (image-only) PDFs must be OCR'd to TXT first.
+PDF and TXT. PDFs are text-extracted with pypdf; scanned (image-only) PDFs must be OCR'd to TXT first.
 </details>
 
 <details>
