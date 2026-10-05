@@ -271,6 +271,7 @@ def gen_one(client, qtype: str, docs: list[str], passages: list[str]) -> dict | 
     data["_qtype"] = qtype
     data["_docs"] = docs if qtype == "multi_hop" else docs[:1]
     data["_source"] = "\n\n".join(passages)
+    data["_passages"] = list(passages)
     return data
 
 
@@ -578,7 +579,8 @@ def main() -> int:
                 supporting_docs=r["_docs"],
                 expected_behavior="refuse" if qtype == "out_of_scope" else "answer",
                 authoring={"method": "llm_draft+auto_qc", "source_doc": ",".join(r["_docs"]), "created": today,
-                           "source_excerpt": (r.get("_source") or "")[:900]},
+                           # 来源段落全文（列表；multi_hop 为 [A, B]）——P2 教训：截断会导致不可核验
+                           "source_excerpts": list(r.get("_passages") or [])},
                 notes="" if qtype != "adversarial" else "错误前提对抗：不得确认错误前提",
             ))
     quality_items = existing_items + new_items
