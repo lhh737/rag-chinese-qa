@@ -577,7 +577,8 @@ def main() -> int:
                 key_claims=[c for c in (r.get("key_claims") or []) if c],
                 supporting_docs=r["_docs"],
                 expected_behavior="refuse" if qtype == "out_of_scope" else "answer",
-                authoring={"method": "llm_draft+auto_qc", "source_doc": ",".join(r["_docs"]), "created": today},
+                authoring={"method": "llm_draft+auto_qc", "source_doc": ",".join(r["_docs"]), "created": today,
+                           "source_excerpt": (r.get("_source") or "")[:900]},
                 notes="" if qtype != "adversarial" else "错误前提对抗：不得确认错误前提",
             ))
     quality_items = existing_items + new_items

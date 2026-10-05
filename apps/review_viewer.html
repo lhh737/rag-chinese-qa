@@ -46,6 +46,7 @@
     <button data-mode="trace" class="active">① 读 trace（错误分析）</button>
     <button data-mode="blind">② 盲标（judge 校准）</button>
     <button data-mode="spot">③ 抽检（归因复核）</button>
+    <button data-mode="review">④ 候选审校（P2）</button>
   </div>
   <div class="spacer"></div>
   <input type="file" id="file" accept=".jsonl,.json,.txt" style="display:none">
@@ -232,13 +233,63 @@ function renderSpot(it){
   </div>`;
 }
 
+/* ═══════════════ 模式四：候选审校（P2 快筛三判断）═══════════════ */
+function renderReview(it){
+  const rec = ANNO[KEYS[IDX]] || {};
+  const checks = rec.checks || {};
+  const docs = (it.supporting_docs||[]).join(", ") || "—";
+  return `
+  <div class="card">
+    <div>${badge(it.id)}${badge(it.type||"")}${badge(it.split||"")}<span class="muted">匹配分 ${it.match_score??"—"} · 期望行为 ${esc(it.expected_behavior||"—")}</span></div>
+    <div class="q">${esc(it.question||"")}</div>
+  </div>
+  <div class="card"><h3>参考答案 / 判分要点</h3>
+    <div>${esc(it.ground_truth||"（无参考答案）")}</div>
+    ${(it.key_claims&&it.key_claims.length)?`<ul>${it.key_claims.map(c=>`<li>${esc(c)}</li>`).join("")}</ul>`:""}
+    <div class="muted">支撑文档：<span class="mono">${esc(docs)}</span></div>
+  </div>
+  <div class="card"><h3>来源段落（对照核实：答案是否可在此定位）</h3>
+    <div style="white-space:pre-wrap;max-height:320px;overflow:auto">${esc(it.source_excerpt||"（无来源摘录）")}</div>
+  </div>
+  <div class="card"><h3>快筛三判断（单题 30 秒级）</h3>
+    <div class="row">
+      <label class="rad"><input type="checkbox" data-chk="题合理" ${checks["题合理"]?"checked":""}> 题合理（问法/难度/题型成立）</label>
+      <label class="rad"><input type="checkbox" data-chk="答案可溯源" ${checks["答案可溯源"]?"checked":""}> 答案正确且可溯源</label>
+      <label class="rad"><input type="checkbox" data-chk="支撑文档正确" ${checks["支撑文档正确"]?"checked":""}> 支撑文档正确</label>
+    </div>
+    <textarea id="rvreason" placeholder="驳回原因 / 修改建议（驳回时必填）">${esc(rec.reason||"")}</textarea>
+    <div class="row">
+      <button class="act primary" onclick="reviewDecide('pass')">✓ 通过并下一条</button>
+      <button class="act" onclick="reviewDecide('reject')">✗ 驳回（停留此页）</button>
+      <span class="muted">快捷键：P 通过 / R 驳回</span>
+    </div>
+  </div>`;
+}
+function reviewDecide(decision){
+  const it = ITEMS[IDX];
+  const checks = {};
+  document.querySelectorAll("input[data-chk]").forEach(c=> checks[c.dataset.chk] = c.checked);
+  ANNO[KEYS[IDX]] = { id: it.id, suite: it.suite, type: it.type, split: it.split,
+    decision, checks, reason: (document.getElementById("rvreason")||{}).value || "",
+    question: it.question };
+  saveLocal(); updateProgress();
+  if(decision === "pass") nav(1);
+}
+document.addEventListener("keydown", (e)=>{
+  if(MODE !== "review") return;
+  const tag = (e.target.tagName || "").toLowerCase();
+  if(tag === "input" || tag === "textarea" || tag === "select") return;
+  if(e.key === "p" || e.key === "P") reviewDecide("pass");
+  if(e.key === "r" || e.key === "R") reviewDecide("reject");
+});
+
 /* ═══════════════ 渲染与事件绑定 ═══════════════ */
 function render(){
   const el = document.getElementById("view");
   document.getElementById("progress").textContent = ITEMS.length? `第 ${IDX+1} / ${ITEMS.length} 条 · 已标注 ${Object.keys(ANNO).length}` : "未载入数据";
   if(!ITEMS.length){ el.innerHTML = ""; return; }
   const it = ITEMS[IDX];
-  el.innerHTML = MODE==="trace" ? renderTrace(it) : MODE==="blind" ? renderBlind(it) : renderSpot(it);
+  el.innerHTML = MODE==="trace" ? renderTrace(it) : MODE==="blind" ? renderBlind(it) : MODE==="spot" ? renderSpot(it) : renderReview(it);
 
   if(MODE==="trace"){
     document.getElementById("anno").addEventListener("input", e=>{
@@ -273,6 +324,16 @@ function render(){
       ANNO[KEYS[IDX]] = ANNO[KEYS[IDX]] || { case_id: it.case_id||KEYS[IDX], question: it.question, attribution: it.attribution };
       ANNO[KEYS[IDX]].corrected = document.getElementById("spotsel").value;
       ANNO[KEYS[IDX]].note = document.getElementById("spotnote").value; saveLocal(); }));
+  }
+  if(MODE==="review"){
+    document.querySelectorAll("input[data-chk]").forEach(c=> c.addEventListener("change", ()=>{
+      const rec = ANNO[KEYS[IDX]] = ANNO[KEYS[IDX]] || { id: it.id, suite: it.suite, type: it.type, split: it.split, decision: "", checks: {}, reason: "" };
+      rec.checks = rec.checks || {};
+      rec.checks[c.dataset.chk] = c.checked; saveLocal(); }));
+    const rv = document.getElementById("rvreason");
+    if(rv) rv.addEventListener("input", ()=>{
+      const rec = ANNO[KEYS[IDX]] = ANNO[KEYS[IDX]] || { id: it.id, suite: it.suite, type: it.type, split: it.split, decision: "", checks: {}, reason: "" };
+      rec.reason = rv.value; saveLocal(); });
   }
 }
 function updateProgress(){ document.getElementById("progress").textContent = `第 ${IDX+1} / ${ITEMS.length} 条 · 已标注 ${Object.keys(ANNO).length}`; }
