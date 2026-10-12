@@ -12,11 +12,15 @@
 {"verdict": "pass|fail", "evidence": "上下文/答案原文摘录", "reason": "一句话"}
 ```
 
-模板字段（`str.format` 占位）：由调用方传入 payload 决定，常用：
-`{question}` `{answer}` `{context}` `{ground_truth}` `{key_claims}` `{citations}`。
+模板字段（`{field}` 按字段名替换——正文含 JSON 示例的花括号，故不走 `str.format`；见
+`judges/client.py::_render_prompt`）。由调用方传入 payload 决定，当前通用字段：
+`{question}` `{answer}` `{context}` `{context_numbered}` `{n_contexts}` `{ground_truth}`
+`{key_claims}` `{expected_behavior}` `{injection_marker}`。
 
-**状态：P1 建立注册表骨架；各 criterion 的 prompt 于 P4（judge 定稿与校准）按错误分析
-结论撰写并冻结。** 目录：
+**状态（2026-10-12）**：P4 各 criterion prompt **v1 已撰写**（边界规则对齐
+`docs/annotation-guideline.md` v1 + 错误分析 taxonomy v1；质量四件套的 few-shot 取自校准集
+"示例段"，安全三件套 few-shot 待安全轻量校准时补充）。校准运行器：
+`scripts/calibrate_judge.py`（调参段 → 测量段纪律内置）。目录：
 
 - `answer_correctness/vN.md` —— 对照 ground_truth + key_claims 的要点完备性
 - `faithfulness/vN.md` —— 每个可核验陈述均被上下文支撑

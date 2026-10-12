@@ -27,6 +27,23 @@ class JudgeError(RuntimeError):
     pass
 
 
+_PLACEHOLDER = re.compile(r"\{([a-z_][a-z0-9_]*)\}")
+
+
+def _render_prompt(template: str, payload: dict[str, Any]) -> str:
+    """按字段名替换 {field} 占位符。
+
+    不用 str.format：judge prompt 正文含 JSON 示例（花括号），format 会误解析。
+    替换后仍残留的 {word} 视为模板引用了未提供的字段（配置错误，立即暴露）。
+    """
+    for key, value in payload.items():
+        template = template.replace("{" + key + "}", str(value))
+    missing = sorted({m.group(1) for m in _PLACEHOLDER.finditer(template)})
+    if missing:
+        raise JudgeError(f"judge prompt 模板引用了未提供字段 {missing}")
+    return template
+
+
 class JudgeClient:
     def __init__(
         self,
@@ -35,9 +52,15 @@ class JudgeClient:
         cache: JudgeCache | None = None,
         client: Any | None = None,
         prompts_dir: str | Path | None = None,
+        extra_body: dict | None = None,
+        max_tokens: int = 600,
     ) -> None:
         self.model = model or get_settings().gen_model
         self.temperature = temperature
+        # 供应商差异（2026-10 实测）：DeepSeek/DashScope 可关思考；TokenHub 的
+        # 思考型裁判（kimi/minimax）不接受关闭参数（400）→ 显式传 {} 表示原样请求。
+        self.extra_body = thinking_off_extra_body() if extra_body is None else extra_body
+        self.max_tokens = max_tokens
         self.cache = cache if cache is not None else JudgeCache()
         self._client = client
         self.prompts_dir = Path(prompts_dir) if prompts_dir else JUDGE_PROMPTS_DIR
@@ -69,17 +92,15 @@ class JudgeClient:
     ) -> dict:
         """返回 {verdict, evidence, reason, criterion, prompt_version, usage?, latency_ms?, _cached?}。"""
         key = JudgeCache.make_key(
-            item_id, answer, criterion, prompt_version, self.model, {"temperature": self.temperature}
+            item_id, answer, criterion, prompt_version, self.model,
+            {"temperature": self.temperature, "max_tokens": self.max_tokens, "extra_body": self.extra_body},
         )
         cached = self.cache.get(key)
         if cached is not None:
             return {**cached, "criterion": criterion, "prompt_version": prompt_version, "_cached": True}
 
         template = self.load_prompt(criterion, prompt_version)
-        try:
-            prompt = template.format(**payload)
-        except KeyError as e:
-            raise JudgeError(f"judge prompt 模板缺字段 {e}（criterion={criterion}/{prompt_version}）") from e
+        prompt = _render_prompt(template, payload)
 
         messages = [{"role": "user", "content": prompt}]
         t0 = time.time()
@@ -95,8 +116,8 @@ class JudgeClient:
                     model=self.model,
                     messages=messages,
                     temperature=self.temperature,
-                    max_tokens=600,
-                    extra_body=thinking_off_extra_body(),
+                    max_tokens=self.max_tokens,
+                    extra_body=self.extra_body,
                 )
                 content = (resp.choices[0].message.content or "").strip()
                 data = self._parse_json(content)

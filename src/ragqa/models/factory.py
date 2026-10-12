@@ -55,6 +55,15 @@ def get_async_gen_client() -> AsyncOpenAI:
     return AsyncOpenAI(api_key=s.gen_key, base_url=s.gen_url)
 
 
+def get_judge_client() -> OpenAI:
+    """裁判模型客户端（P4；独立于生成——配置 JUDGE_*，OpenAI 兼容端点）。"""
+    s = get_settings()
+    if not s.judge_api_key:
+        raise RuntimeError("未配置裁判模型：请在 .env 设置 JUDGE_API_KEY / JUDGE_BASE_URL / JUDGE_MODEL")
+    logger.info("[model] 裁判: %s @ %s", s.judge_model or "(未指定模型)", s.judge_base_url or "(默认)")
+    return OpenAI(api_key=s.judge_api_key, base_url=s.judge_base_url or None)
+
+
 def thinking_off_extra_body() -> dict:
     """"关闭思考"的请求参数：不同供应商字段不同（2026-10 实测）。
 

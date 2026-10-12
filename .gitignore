@@ -40,6 +40,10 @@ logs/
 md5.txt
 chroma_db/
 
+# judge 结果缓存（SQLite；可重建，不入库）
+cache/
+
+
 # 系统文件
 .DS_Store
 Thumbs.db

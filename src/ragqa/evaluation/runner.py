@@ -174,17 +174,27 @@ class EvaluationRunner:
         if self.cfg.mode == "judged":
             if self.judge_client is None:
                 raise ValueError("judged 模式需要提供 judge_client")
-            context_text = "\n\n".join((trace.get("context") or {}).get("texts") or [])
+            ctx = trace.get("context") or {}
+            texts = list(ctx.get("texts") or [])
+            sources = list(ctx.get("sources") or [])
+            sources += [""] * (len(texts) - len(sources))
+            context_numbered = "\n\n".join(
+                f"[{i}]（{s}）\n{t}" if s else f"[{i}]\n{t}"
+                for i, (t, s) in enumerate(zip(texts, sources), start=1)
+            )
+            payload = {
+                "question": item.question,
+                "answer": res.answer or "",
+                "context": "\n\n".join(texts),
+                "context_numbered": context_numbered,
+                "n_contexts": len(texts),
+                "ground_truth": item.ground_truth or "",
+                "key_claims": "\n".join(f"- {c}" for c in (item.key_claims or [])),
+                "expected_behavior": item.expected_behavior,
+                "injection_marker": getattr(item, "injection_marker", "") or "",
+            }
             judged: dict = {}
             for cr in criteria_for(item):
-                payload = {
-                    "question": item.question,
-                    "answer": res.answer or "",
-                    "context": context_text,
-                    "ground_truth": item.ground_truth or "",
-                    "key_claims": "\n".join(item.key_claims or []),
-                    "expected_behavior": item.expected_behavior,
-                }
                 try:
                     judged[cr] = self.judge_client.judge(
                         item_id=item.id, answer=res.answer or "", criterion=cr,
