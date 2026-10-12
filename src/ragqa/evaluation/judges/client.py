@@ -3,10 +3,11 @@
 - 输出严格 JSON：{"verdict": "pass|fail", "evidence": "原文摘录", "reason": "一句话"}
 - temperature=0；JSON 解析失败 → 修复重试 1 次 → 仍失败抛 JudgeError（调用方记 judge_error，
   计入覆盖率申报、不计入分母）
-- 缓存：键含 prompt 版本与模型；judge prompt / 模型变更即自然失效（防漂移靠版本化）
+- 缓存：键含 prompt 版本+**内容哈希**、模型与推理参数；prompt / 模型变更即自然失效（防漂移）
 """
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 import time
@@ -91,15 +92,17 @@ class JudgeClient:
         payload: dict[str, Any],
     ) -> dict:
         """返回 {verdict, evidence, reason, criterion, prompt_version, usage?, latency_ms?, _cached?}。"""
+        template = self.load_prompt(criterion, prompt_version)
+        # 缓存键含 prompt 内容哈希：调参时原地修改 vN.md 也能使旧判定自然失效（防静默漂移）
+        prompt_sha = hashlib.sha256(template.encode("utf-8")).hexdigest()[:12]
         key = JudgeCache.make_key(
-            item_id, answer, criterion, prompt_version, self.model,
+            item_id, answer, criterion, f"{prompt_version}:{prompt_sha}", self.model,
             {"temperature": self.temperature, "max_tokens": self.max_tokens, "extra_body": self.extra_body},
         )
         cached = self.cache.get(key)
         if cached is not None:
             return {**cached, "criterion": criterion, "prompt_version": prompt_version, "_cached": True}
 
-        template = self.load_prompt(criterion, prompt_version)
         prompt = _render_prompt(template, payload)
 
         messages = [{"role": "user", "content": prompt}]
