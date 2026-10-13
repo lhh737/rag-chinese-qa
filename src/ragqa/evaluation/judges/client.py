@@ -114,15 +114,17 @@ class JudgeClient:
                     {"role": "assistant", "content": "<上一条输出无法解析为严格 JSON>"},
                     {"role": "user", "content": "请只输出一个 JSON 对象，不要任何其他文字或代码块标记；"
                                                 "verdict、evidence、reason 三个字段必填，"
-                                                "evidence 必须引用原文摘录（不得为空；无引文可摘时填写判定依据摘要）。"},
+                                                "evidence 必须引用原文摘录（不得为空；无引文可摘时填写判定依据摘要），"
+                                                "evidence 摘录保持简短（合计 60 字以内）。"},
                 ]
             try:
                 resp = self.client.chat.completions.create(
                     model=self.model,
                     messages=messages,
                     temperature=self.temperature,
-                    # 思考型裁判可能把预算烧在 reasoning 上导致空输出——重试时加倍（2026-10-13 q014 实测）
-                    max_tokens=self.max_tokens if attempt == 0 else self.max_tokens * 2,
+                    # 思考型裁判可能把预算烧在 reasoning/长摘录上导致空输出或截断——
+                    # 重试时大幅放宽预算（2026-10-13 q014 空输出 / q011 截断实测）
+                    max_tokens=self.max_tokens if attempt == 0 else self.max_tokens * 4,
                     extra_body=self.extra_body,
                 )
                 content = (resp.choices[0].message.content or "").strip()

@@ -163,6 +163,8 @@ def main() -> int:
     ap.add_argument("--think-off", action="store_true", help="尝试关闭思考（仅部分模型支持；不支持会报错）")
     ap.add_argument("--concurrency", type=int, default=4)
     ap.add_argument("--allow-measurement", action="store_true", help="测量段纪律开关（调参期间不得使用）")
+    ap.add_argument("--second-judge", default=None, help="第二裁判模型（'auto' 取 .env JUDGE_MODEL_SECOND）；用于 20%% 抽样交叉")
+    ap.add_argument("--second-sample", type=int, default=5, help="每 K 条抽 1 条做第二裁判（默认 5 = 20%%）")
     args = ap.parse_args()
 
     if args.segment == "measurement" and not args.allow_measurement:
@@ -236,6 +238,34 @@ def main() -> int:
             results.append(row)
             if i % 20 == 0 or i == len(tasks):
                 print(f"  … {i}/{len(tasks)}")
+
+    # ── 第二裁判：抽样交叉（设计 §4.4）──
+    second_model = None
+    if args.second_judge:
+        second_model = (s.judge_model_second or None) if args.second_judge == "auto" else args.second_judge
+        if not second_model:
+            print("⚠ 指定了 --second-judge 但 .env 未配置 JUDGE_MODEL_SECOND，跳过交叉")
+    second_results: dict[tuple[str, str], dict] = {}
+    if second_model:
+        sampled = [t for i, t in enumerate(tasks) if i % max(1, args.second_sample) == 0]
+        judge2 = JudgeClient(model=second_model, cache=JudgeCache(), client=get_judge_client(),
+                             extra_body={}, max_tokens=args.max_tokens)
+
+        def run_two(task: tuple[dict, str]) -> tuple[tuple[str, str], dict]:
+            it, cr = task
+            try:
+                v = judge2.judge(item_id=it["id"], answer=it.get("answer", ""), criterion=cr,
+                                 prompt_version=args.prompt_version, payload=build_payload(it))
+            except JudgeError as e:
+                v = {"verdict": "error", "error": str(e)}
+            return (it["id"], cr), v
+
+        with ThreadPoolExecutor(max_workers=args.concurrency) as ex:
+            for key, v in ex.map(run_two, sampled):
+                second_results[key] = v
+        print(f"第二裁判（{second_model}）抽样 {len(sampled)} 条完成")
+    for r in results:
+        r["judge2"] = second_results.get((r["id"], r["criterion"]))
 
     # composed 合成：citation_accuracy = judge 语义层 ∪ 代码层（编号越界）
     for r in results:
@@ -324,6 +354,34 @@ def main() -> int:
             aj = fmt_pct(mj["agreement"])
             ac = fmt_pct(mc["agreement"])
             L.append(f"| {seg} | {mc['n']} | {aj} | {ac} | {n_code_fail} |")
+        L.append("")
+
+    # 第二裁判交叉（抽样）
+    if second_model:
+        L.append(f"## 第二裁判交叉（{second_model}，每 {max(1, args.second_sample)} 条抽 1）\n")
+        pairs12: list[tuple[str, str]] = []
+        pairs2h: list[tuple[str, str]] = []
+        dis2: list[tuple[str, str, str, str, str]] = []
+        for r in results:
+            j1 = r["judge"].get("verdict")
+            j2 = (r.get("judge2") or {}).get("verdict")
+            h = (r.get("human") or {}).get("label")
+            if j1 in ("pass", "fail") and j2 in ("pass", "fail"):
+                pairs12.append((j1, j2))
+                if j1 != j2:
+                    dis2.append((r["id"], r["criterion"], j1, j2, ((r.get("judge2") or {}).get("reason") or "")[:90]))
+            if h in ("pass", "fail") and j2 in ("pass", "fail"):
+                pairs2h.append((h, j2))
+        if pairs12:
+            a12 = sum(1 for a, b in pairs12 if a == b)
+            L.append(f"- 裁判间一致率：{a12}/{len(pairs12)} = {a12 / len(pairs12):.3f}")
+        else:
+            L.append("- 裁判间：无有效样本")
+        if pairs2h:
+            a2h = sum(1 for a, b in pairs2h if a == b)
+            L.append(f"- 第二裁判 vs 人工一致率：{a2h}/{len(pairs2h)} = {a2h / len(pairs2h):.3f}")
+        for d in dis2:
+            L.append(f"- 裁判分歧：**{d[0]} · {d[1]}**：主裁判 {d[2]} vs 第二裁判 {d[3]}（{d[4]}）")
         L.append("")
 
     # 分歧清单
