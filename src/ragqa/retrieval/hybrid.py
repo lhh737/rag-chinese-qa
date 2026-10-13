@@ -63,11 +63,14 @@ class HybridRetriever:
                 merged.setdefault(d.metadata.get("chunk_uid", ""), d)
             for d, _s in bm25:
                 merged.setdefault(d.metadata.get("chunk_uid", ""), d)
+            # 与 rrf 分支同构的 fused 序（recall@5/MRR 读取此字段；2026-10-13 A4 修复）
+            fused = [{"chunk_uid": u, "merge_rank": i} for i, u in enumerate(merged, start=1)]
             return list(merged.values()), {
                 "strategy": "merge",
                 "n_vector": len(vector),
                 "n_bm25": len(bm25),
                 "n_fused": len(merged),
+                "fused": fused,
             }
 
         k = self.cfg.rrf_k
