@@ -112,14 +112,17 @@ class JudgeClient:
             if attempt == 1:
                 messages = messages + [
                     {"role": "assistant", "content": "<上一条输出无法解析为严格 JSON>"},
-                    {"role": "user", "content": "请只输出一个 JSON 对象，不要任何其他文字或代码块标记。"},
+                    {"role": "user", "content": "请只输出一个 JSON 对象，不要任何其他文字或代码块标记；"
+                                                "verdict、evidence、reason 三个字段必填，"
+                                                "evidence 必须引用原文摘录（不得为空；无引文可摘时填写判定依据摘要）。"},
                 ]
             try:
                 resp = self.client.chat.completions.create(
                     model=self.model,
                     messages=messages,
                     temperature=self.temperature,
-                    max_tokens=self.max_tokens,
+                    # 思考型裁判可能把预算烧在 reasoning 上导致空输出——重试时加倍（2026-10-13 q014 实测）
+                    max_tokens=self.max_tokens if attempt == 0 else self.max_tokens * 2,
                     extra_body=self.extra_body,
                 )
                 content = (resp.choices[0].message.content or "").strip()
@@ -149,4 +152,37 @@ class JudgeClient:
         m = re.search(r"\{.*\}", content, re.S)
         if not m:
             raise ValueError(f"无 JSON: {content[:120]}")
-        return json.loads(m.group(0))
+        try:
+            return json.loads(m.group(0))
+        except json.JSONDecodeError:
+            pass
+        # 兜底：输出里可能夹带多段 JSON/说明文字——从每个 '{' 起做括号配平，
+        # 取第一个可解析且含 verdict 的对象（2026-10-13 q007 实测）。
+        for start in (i for i, ch in enumerate(content) if ch == "{"):
+            depth = 0
+            in_str = esc = False
+            for i in range(start, len(content)):
+                ch = content[i]
+                if in_str:
+                    if esc:
+                        esc = False
+                    elif ch == "\\":
+                        esc = True
+                    elif ch == '"':
+                        in_str = False
+                    continue
+                if ch == '"':
+                    in_str = True
+                elif ch == "{":
+                    depth += 1
+                elif ch == "}":
+                    depth -= 1
+                    if depth == 0:
+                        try:
+                            data = json.loads(content[start : i + 1])
+                        except json.JSONDecodeError:
+                            break
+                        if isinstance(data, dict) and "verdict" in data:
+                            return data
+                        break
+        raise ValueError(f"无法解析 JSON: {content[:120]}")

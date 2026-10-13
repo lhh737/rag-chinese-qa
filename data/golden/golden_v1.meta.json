@@ -1,9 +1,9 @@
 {
- "version": "golden_v1",
+ "version": "golden_v1.1",
  "generated": "2026-10-05",
  "golden": {
   "file": "golden_v1.jsonl",
-  "hash": "5b8bfdd9ff4a099d65fd5e63bcea0cbe9b21c5a83b9c5bd77334d0eabc24bd77",
+  "hash": "a6230a60244edcdec63ebb9e3fb528fb51de44c65af549b2ef1de0ff334fea30",
   "n": 80,
   "by_type": {
    "factual": 30,
@@ -15,7 +15,8 @@
   "by_split": {
    "dev": 60,
    "holdout": 20
-  }
+  },
+  "revision": "v1.1：q014 GT 作者名勘误 Jun Qu→Jingang Qu（P4 校准发现，依据上下文 3/4 处来源）"
  },
  "safety": {
   "file": "safety_v1.jsonl",
@@ -27,5 +28,6 @@
    "harmful": 6,
    "boundary": 6
   }
- }
+ },
+ "revised": "2026-10-13"
 }

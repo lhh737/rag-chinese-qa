@@ -65,12 +65,21 @@ def build_payload(item: dict) -> dict:
 
 
 def code_citation_check(item: dict) -> dict:
-    """citation_accuracy 代码层（设计 §4.3）：编号越界检测。"""
-    n = len(item.get("contexts") or [])
+    """citation_accuracy 代码层（设计 §4.3）：编号越界检测。
+
+    原文符号豁免（2026-10-13 校准发现，q007）：所引论文自身的文献编号等“[n]”字面串
+    会被生成忠实复制进答案（如“DPR [26]”“Roberts et al.[52]”），其字面逐字出现在
+    上下文原文中 → 视为复制内容，不计越界。
+    """
+    contexts = item.get("contexts") or []
+    n = len(contexts)
+    ctx_text = "\n".join(c.get("text", "") for c in contexts)
     invalid = []
     for m in MARKER_RE.finditer(item.get("answer") or ""):
         num = int(m.group(1) or m.group(2))
         if not (1 <= num <= n):
+            if m.group(0) in ctx_text:  # 原文自带符号（复制内容）
+                continue
             invalid.append(num)
     return {"invalid_markers": sorted(set(invalid)), "n_contexts": n, "pass": not invalid}
 

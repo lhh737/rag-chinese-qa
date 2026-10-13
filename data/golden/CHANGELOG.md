@@ -1,3 +1,10 @@
+## golden_v1.1 · 2026-10-13（P4 校准勘误）
+- 变更：q014（factual/dev）参考答案与 key_claims 的作者名「Jun Qu」→「Jingang Qu」
+- 依据：P4 judge 校准与人工盲标对账发现——该题上下文语料 4 处来源中 3 处写作 "Jingang Qu"（1 处来源自身笔误为 "Jun Qu"）；
+  基线答案忠实复制多数来源，原 GT 系出题期转录误
+- 影响面：golden hash 更新（5b8bfdd9ff4a099d… → a6230a60244edcde…）；q014 判分以修正后 GT 为准（人工盲标 pass 与答案忠实性一致）；其余 79 题内容不变
+- 处置依据：设计 §4.2「评测集变更走版本号 + CHANGELOG + hash」；见 P4 校准报告
+
 # 评测集 CHANGELOG（资产级变更：golden/safety 与 judge prompt 版本）
 
 ## golden_v1 / safety_v1 · 2026-10-05（初始冻结）
