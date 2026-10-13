@@ -8,13 +8,28 @@
 
 | 项 | 值 |
 |---|---|
-| 主裁判 | **`mimo-v2.6-flash`**（MiMo/小米族，与生成系 DeepSeek **异族** ✓）· max_tokens 2048（重试时 ×4）· temperature 0 |
-| 第二裁判（20% 抽样交叉） | `deepseek-v4-flash`（DeepSeek 族） |
-| 人工标注 | 单标注人（用户），盲标 164 条（52×3 + 8×1；无跳过）；citation 口径重标版已合并（`blind_labels_merged_v2.jsonl`） |
+| 主裁判（**v1.1 最终**） | **`deepseek-flash`**（DeepSeek 官方 API 直连 @ api.deepseek.com，v4.1；与生成模型同账户——**同族，自偏好局限已声明**，设计 §4.4 单族预案条款）· max_tokens 2048（重试时 ×4）· temperature 0 |
+| 第二裁判（20% 抽样交叉） | `deepseek-v4-pro`（官方 API） |
+| 历史（v1.0，存档） | 主裁判 `mimo-v2.6-flash`（MiMo 族，**异族** ✓）+ 第二裁判 `deepseek-v4-flash`：曾完成全绿校准（§5），作为**异族参照锚点**存档；另有 depth 见 §5 额度事件实录 |
+| 人工标注 | 单标注人（用户），盲标 164 条（52×3 + 8×1；无跳过）；citation 口径重标版已合并（`blind_labels_merged_v2.jsonl`）；隔日复标 10 题见 §8 |
 | 判定材料 | 与查看器同源：基线答案 + 上下文（编号）+ GT + key_claims（`blind_label_v1.jsonl`，q014 勘误后） |
-| judge prompt 冻结哈希（sha256 前 12 位） | answer_correctness `170dad755914` · faithfulness `d28e0e4ab047` · citation_accuracy `7381b21f5bbe` · oos_refusal `b89e7e5878e1` · injection_resistance `f26df0b6a80d` · harmful_refusal `4d50cdbe4d75` · boundary_compliance `6e4dbe309716` |
+| judge prompt 冻结哈希（sha256 前 12 位，终版） | answer_correctness `693fc379107f` · faithfulness `a0ba2a409b00` · citation_accuracy `a64b2853f831` · oos_refusal `b89e7e5878e1` · injection_resistance `f26df0b6a80d` · harmful_refusal `4d50cdbe4d75` · boundary_compliance `6e4dbe309716` |
 
 ## 2. 结果（三段）
+
+### 2.1 v1.1 最终口径（正式尺子 `deepseek-flash` 官方 · 2026-10-13 深夜全量重校准）
+
+| 段 | criterion | n | 一致 | TPR | TNR |
+|---|---|---:|---|---|---|
+| 示例段 | answer_correctness / faithfulness / citation_accuracy / oos_refusal | 18/18/18/2 | **全 1.000** | ac 7/7 | ac 11/11 等全对 |
+| 调参段 | 同上 | 17/17/17/3 | **全 1.000** | ac 7/7 | ac 10/10 等全对 |
+| 测量段 | 同上 | 17/17/17/3 | **全 1.000** | ac 7/7 · faith 1/1 · cit 1/1 | ac 10/10 · faith 16/16 · cit 16/16 |
+
+- **合计 164/164 判定有效（judge_error 0）、与人工标注零分歧**；第二裁判 `deepseek-v4-pro` 抽样交叉：调参段 11/11、测量段 11/11（裁判间与对人工均 1.000）。
+- 尺子**可移植性证据**：v1.0（异族 mimo-v2.6）与 v1.1（官方 deepseek-flash）两把独立尺子在同一定稿 prompt 体系下均实现零分歧。
+- 门槛（TPR/TNR ≥ 0.8）全部达成；小样本声明同 2.2。
+
+### 2.2 v1.0 口径（异族尺子 `mimo-v2.6-flash`，历史存档）
 
 > TPR = 人工 fail 中裁判 fail 的比例；TNR = 人工 pass 中裁判 pass 的比例；区间为 Wilson 95%；κ = Cohen's kappa。
 > citation_accuracy 为 **composed**（judge 语义层 ∪ 代码层编号越界豁免后）。
@@ -71,6 +86,9 @@
 | 6 | q006 型 | "核心机制+佐证性延伸"被当作并列必答 | 并列理由达标线：给出核心机制即达标 | 同上 |
 | 7 | q014 | GT 作者名转录误（上下文 3/4 处来源为准） | **golden_v1.1 版本化勘误**（CHANGELOG + hash，见 data/golden/） | 数据集勘误 |
 | 8 | q003（错误分析侧） | 原 E 类"citation_error"实为源文符号误判 | 更正记录：P3 E 类样本废止；真·张冠李戴样本为 q003（P4 校准发现） | taxonomy v1 更正注 |
+| 9 | q021 | 答案复现材料原始箭头记法，被判与 GT 方向相反 | **复现原记法不算矛盾**（材料忠实优先） | guideline v2 候选 |
+| 10 | q068 | “资料中另有 X 表述”被当作事实矛盾 | **资料内容描述 ≠ 事实断言** | 同上 |
+| 11 | 长答案引用核对 | 逐句罗列证据 → 输出截断（judge_error） | 输出格式限定证据 ≤80 字（1-2 处具代表性对照）；重试预算 ×4；瞬态错误复跑后 164/164 全有效 | 工程性 |
 
 > 以上 1–6 将并入 `docs/annotation-guideline.md` v2（判决规则变更 → 已在本轮测量段按定稿规则复验；不改动测量段数据）。
 
@@ -84,6 +102,7 @@
 | 10-13 | mimo-v2.5-pro 额度耗尽（402） | 探备选：glm-5.3 可用（异族） |
 | 10-13 | glm-5.3 额度见底（不在 1M 赠送名单，小额试用） | 探备选：**MiMo-V2.6-Flash 可用**（1M 池） |
 | 10-13 | 最终轮全量校准 | 主裁判 **MiMo-V2.6-Flash**（4/4 难题试跑全中）；一次性三段通过 |
+| 10-13 深夜 | 用户指定 DeepSeek 官方 API 直连（ccswitch 配置） | 主裁判 = **`deepseek-flash`（v4.1）**、第二裁判 = `deepseek-v4-pro`；v1.1 全量重校准 **164/164 全绿**（含 q021/q068 两处再修正）；TokenHub `deepseek-v4-flash` 留作备用、`mimo-v2.6-flash` 残额留作异族锚点 |
 
 > 累计约 220 万 tokens 消耗（含各轮重跑）；口径：免费额度演练了设计 §4.4 的"模型族预案"（异族优先 → 备选族）。**P5/P6 判分需按量付费额度**（见 §8 待办）。
 
@@ -94,13 +113,13 @@
 
 ## 7. judge v1 冻结与防漂移
 
-- 冻结：7 个 `prompts/judge/*/v1.md`（哈希见 §1）+ 主裁判 `mimo-v2.6-flash` + 参数（temperature 0、max_tokens 2048、重试 ×4）。
+- 冻结：7 个 `prompts/judge/*/v1.md`（哈希见 §1）+ 主裁判 `deepseek-flash`（官方 v4.1）+ 第二裁判 `deepseek-v4-pro` + 参数（temperature 0、max_tokens 2048、重试 ×4）。
 - 防漂移：缓存键含 **prompt 内容哈希**；prompt 或模型变更 → 重跑测量段校准（本报告指标标记不可比），并在 Registry/CHANGELOG 记录。
 - 安全三件套（injection_resistance / harmful_refusal / boundary_compliance）v1 为规则版，未参与本轮质量校准；**安全轻量校准**（12-15 条人工抽检一致率）按设计留待 P6 防御对照前执行。
 
 ## 8. 待办与已知局限
 
-- [ ] 隔日复标 10 题（intra-rater 一致率）：文件 `blind_relabel_10_v1.jsonl`（查看器模式②），结果补入本报告 §2。
+- [x] 隔日复标 10 题完成（intra-rater）：**原始一致率 26/30 = 0.867**。4 处变化如实记录：q037-citation 标签与理由自相矛盾（理由论证通过、标签为失败，疑似误点）；q003-citation 回摆（复标 pass，与原判 fail 及原 PDF 核实相悖）；q072-ac 回摆（fail→pass）；q037-faith 与既定"拒答豁免"口径不一致。**原盲标为校准基准不变**；本条作为单标注人自身一致性的诚实例证入档（文件：`blind_relabel_10_v1_export_20261013.jsonl`）。
 - [ ] 工具对照（RAGAS/DeepEval）：因裁判额度约束延后至 **P5 基线报告附录**执行（对照设计已就位：同一批人工标注 × 一致率/成本/中文失效模式）。如实记录为未完成项。
 - [ ] 安全轻量校准（P6 前）。
 - [ ] P5 起判分需**按量付费**额度（预算 15-30 元区间）。

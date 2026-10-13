@@ -1,0 +1,30 @@
+{"id":"q001","criterion":"answer_correctness","label":"fail","reason":"失败：系统回答“根据提供的资料无法回答”，未给出 SuCI，也未说明其与本文工作最相关、处理人类多模态理解中的主体变化、通过因果解耦消除主体特定虚假相关等关键信息，未覆盖任何 key_claims，原因是检索召回提供的参考材料不相关","mode":"blind"}
+{"id":"q001","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q001","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q036","criterion":"answer_correctness","label":"fail","reason":"参考材料虽然相关，但未提供相关论文编号，，导致模型无法区分单独的论文归属，使得模型参考生成失败","mode":"blind"}
+{"id":"q036","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q036","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q072","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q072","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q072","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q002","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q002","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q002","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q037","criterion":"faithfulness","label":"fail","reason":"失败：系统回答“根据提供的资料无法回答”与上下文矛盾。参考资料 [4] 已包含自适应检索（如 Self-RAG、SKR、AdaptiveRAG 等判断检索必要性的思路），参考资料 [1][2] 已指出医疗长视频存在临床证据检索与解释瓶颈、简单扩展上下文不足、需要稀疏证据感知与按需检索，资料足以回答该问题，完全拒答不忠实于给定上下文。","mode":"blind"}
+{"id":"q037","criterion":"answer_correctness","label":"fail","reason":"失败：系统回答“根据提供的资料无法回答”，未给出参考答案中的“临床证据检索与解释的瓶颈”，也未说明自适应检索可减少无效帧/片段检索、对应稀疏证据感知等要点，未覆盖任何 key_claims。","mode":"blind"}
+{"id":"q037","criterion":"citation_accuracy","label":"fail","reason":"通过：系统回答为“根据提供的资料无法回答”，没有任何引用标记，属于纯拒答，无被引陈述可核；按判定口径，无标记回答应判 pass。","mode":"blind"}
+{"id":"q073","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q073","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q073","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q003","criterion":"answer_correctness","label":"fail","reason":"参考答案与 key_claims 要求的是 Mint 和 ProgPrompt。系统回答给出的是 Progprompt 和 Code as Policies，只答对 ProgPrompt，漏掉 Mint，并把 Code as Policies 误当作“Execution / Action Grounding”下同时出现在 Planning 列举中的方法。","mode":"blind"}
+{"id":"q003","criterion":"faithfulness","label":"fail","reason":"系统回答称“根据参考资料”得出 Progprompt 和 Code as Policies 同时出现在“Action Grounding”与“Planning”相关工作的列举中。但上下文中 Execution 下的 Action Grounding 并未列出 Code as Policies；Planning 相关工作的典型例子确实出现 Progprompt 和 Code as Policies，但这不能支持 Code as Policies 同时属于 Action Grounding。该回答与上下文不忠实。","mode":"blind"}
+{"id":"q003","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q021","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q021","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q021","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q052","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q052","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q052","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q074","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q074","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q074","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
