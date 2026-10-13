@@ -32,17 +32,16 @@ _PLACEHOLDER = re.compile(r"\{([a-z_][a-z0-9_]*)\}")
 
 
 def _render_prompt(template: str, payload: dict[str, Any]) -> str:
-    """按字段名替换 {field} 占位符。
+    """按字段名替换 {field} 占位符（单遍替换）。
 
     不用 str.format：judge prompt 正文含 JSON 示例（花括号），format 会误解析。
-    替换后仍残留的 {word} 视为模板引用了未提供的字段（配置错误，立即暴露）。
+    单遍替换保证**载荷原文中出现的 {word} 字面量**（如检索到的含模板文本的文档）
+    既不会被误判为缺字段，也不会被二次替换（2026-10-13 q053 实测修复）。
     """
-    for key, value in payload.items():
-        template = template.replace("{" + key + "}", str(value))
-    missing = sorted({m.group(1) for m in _PLACEHOLDER.finditer(template)})
+    missing = sorted({m.group(1) for m in _PLACEHOLDER.finditer(template)} - set(payload))
     if missing:
         raise JudgeError(f"judge prompt 模板引用了未提供字段 {missing}")
-    return template
+    return _PLACEHOLDER.sub(lambda m: str(payload[m.group(1)]) if m.group(1) in payload else m.group(0), template)
 
 
 class JudgeClient:
