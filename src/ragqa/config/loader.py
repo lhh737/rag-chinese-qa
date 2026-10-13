@@ -35,22 +35,28 @@ class RetrievalConfig(BaseModel):
     # 召回与融合
     vector_fetch_k: int = 24
     bm25_fetch_k: int = 24
+    bm25_enabled: bool = True       # 消融开关：False = 纯稠密检索
     fusion: Literal["rrf", "merge"] = "rrf"
     rrf_k: int = 60
     # 重排与最终上下文
     rerank_top_n: int = 12
+    rerank_enabled: bool = True     # 消融开关：False = 移除重排（回退融合序）
     base_context_k: int = 4
     max_context_k: int = 8
     # HyDE
     hyde: HydeConfig = Field(default_factory=HydeConfig)
 
     def config_id(self) -> str:
-        """可对照配置的短标识（进 trace/Registry）。"""
+        """可对照配置的短标识（进 trace/Registry）。
+
+        2026-10-13 扩展：追加 rr/bm 开关位（默认 rr1bm1 ≡ 旧格式的默认配置）。
+        """
         return (
             f"vec{int(self.vector_fetch_k)}_bm25{int(self.bm25_fetch_k)}_"
             f"{self.fusion}{self.rrf_k}_rr{int(self.rerank_top_n)}_"
             f"k{int(self.base_context_k)}-{int(self.max_context_k)}_"
-            f"hyde{int(self.hyde.enabled)}"
+            f"hyde{int(self.hyde.enabled)}_"
+            f"rr{int(self.rerank_enabled)}bm{int(self.bm25_enabled)}"
         )
 
 

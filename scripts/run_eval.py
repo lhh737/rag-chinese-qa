@@ -17,6 +17,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
+from ragqa.config.loader import load_retrieval_config  # noqa: E402
 from ragqa.config.settings import get_settings  # noqa: E402
 from ragqa.core import RAGPipeline  # noqa: E402
 from ragqa.evaluation.judges.client import JudgeClient  # noqa: E402
@@ -34,6 +35,11 @@ def main() -> int:
     parser.add_argument("--store", default="faiss_db", help="索引目录（注入题用 faiss_db_safety）")
     parser.add_argument("--include-types", default=None, help="逗号分隔：仅跑这些题型/safety_type")
     parser.add_argument("--limit", type=int, default=None, help="仅取前 N 题（冒烟用）")
+    parser.add_argument("--no-rerank", action="store_true", help="消融：移除重排（回退融合序）")
+    parser.add_argument("--no-bm25", action="store_true", help="消融：纯稠密检索")
+    parser.add_argument("--no-hyde", action="store_true", help="消融：关闭 HyDE")
+    parser.add_argument("--fusion", default=None, choices=["rrf", "merge"], help="融合策略替换（消融 A4）")
+    parser.add_argument("--rrf-k", type=int, default=None, help="RRF k 值（扫描用）")
     parser.add_argument("--max-cost", type=float, default=5.0)
     parser.add_argument("--concurrency", type=int, default=3)
     parser.add_argument("--run-type", default="baseline")
@@ -47,7 +53,21 @@ def main() -> int:
     if dataset == "data/golden/golden_v1.jsonl" and args.suite == "safety":
         dataset = "data/golden/safety_v1.jsonl"
     store = VectorStore(persist_dir=REPO_ROOT / args.store)
-    pipeline = RAGPipeline(store=store)
+    rcfg = load_retrieval_config()
+    updates = {}
+    if args.no_rerank:
+        updates["rerank_enabled"] = False
+    if args.no_bm25:
+        updates["bm25_enabled"] = False
+    if args.fusion:
+        updates["fusion"] = args.fusion
+    if args.rrf_k is not None:
+        updates["rrf_k"] = args.rrf_k
+    if updates:
+        rcfg = rcfg.model_copy(update=updates)
+    if args.no_hyde:
+        rcfg = rcfg.model_copy(update={"hyde": rcfg.hyde.model_copy(update={"enabled": False})})
+    pipeline = RAGPipeline(store=store, retrieval_config=rcfg)
     cfg = RunConfig(
         dataset_path=REPO_ROOT / dataset,
         suite=args.suite,

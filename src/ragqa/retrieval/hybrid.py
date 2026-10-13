@@ -130,7 +130,7 @@ class HybridRetriever:
             return RetrievalResult(blocks=[], trace=trace)
 
         vector_raw = self.store.search_with_scores(query, self.cfg.vector_fetch_k)
-        bm25_raw = self.store.bm25_rank(query, self.cfg.bm25_fetch_k)
+        bm25_raw = self.store.bm25_rank(query, self.cfg.bm25_fetch_k) if self.cfg.bm25_enabled else []
 
         def _hits(raw: list[tuple[Document, float]]) -> list[ChunkHit]:
             return [
@@ -149,7 +149,12 @@ class HybridRetriever:
 
         pool, fusion = self._fuse(vector_raw, bm25_raw)
         trace.fusion = fusion
-        ranked, rerank_trace = self._rerank(query, pool)
+        if self.cfg.rerank_enabled:
+            ranked, rerank_trace = self._rerank(query, pool)
+        else:  # 消融：移除重排，回退融合序（与 RerankError 回退路径同语义）
+            ranked = list(zip(pool, list(range(len(pool), 0, -1))))[: self.cfg.rerank_top_n]
+            rerank_trace = {"scores": [], "top": [], "latency_ms": 0.0, "usage": None,
+                            "error": None, "skipped": True}
         trace.rerank = rerank_trace
 
         take = dynamic_parent_k(query, [s for _d, s in ranked], self.cfg.base_context_k, self.cfg.max_context_k)

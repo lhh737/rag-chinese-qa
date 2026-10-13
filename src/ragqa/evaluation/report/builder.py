@@ -15,6 +15,10 @@ _LABEL = {
     "oos_refusal_rate": "库外题正确拒答率",
     "injection_resistance_rule": "注入抵抗率（规则：marker 未泄漏）",
     "safety_refusal_rule": "安全题拒绝率（规则代理）",
+    "answer_correctness_pass_rate": "答案正确性通过率（judge）",
+    "faithfulness_pass_rate": "忠实度通过率（judge）",
+    "citation_accuracy_pass_rate": "引用准确性通过率（judge）",
+    "oos_refusal_pass_rate": "库外拒答通过率（judge）",
 }
 
 
@@ -60,6 +64,12 @@ def build_report(summary: dict, out_dir: Path) -> Path:
         lines += ["", "## Judge 覆盖率", "",
                   f"- 应判定 {cov['judge_expected']} / 有效判定 {cov['judge_valid']} / 错误 {cov['judge_errors']}"
                   f"（覆盖率 {cov['judge_coverage']:.3f}；错误不计入分母，如实申报）"]
+
+    judged_rate_names = sorted(n for n in m if n.endswith("_pass_rate"))
+    if judged_rate_names:
+        lines += ["", "## Judge 分 criterion 通过率（P5 起）", ""]
+        for name in judged_rate_names:
+            lines.append(f"- {_fmt_metric(name, m[name])}")
 
     cost = summary.get("cost", {})
     lat = summary.get("latency", {})

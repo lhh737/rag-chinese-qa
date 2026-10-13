@@ -360,6 +360,18 @@ class EvaluationRunner:
             valid = sum(1 for r in judged for v in r["judge"].values() if v.get("verdict") in ("pass", "fail"))
             coverage = {"judge_expected": expected, "judge_valid": valid, "judge_errors": errors,
                         "judge_coverage": round(valid / expected, 4) if expected else 0.0}
+            # 分 criterion 通过率（P5 起；error 不计入分母）
+            crit_stats: dict[str, dict] = {}
+            for r in judged:
+                for cr, v in r["judge"].items():
+                    if v.get("verdict") in ("pass", "fail"):
+                        d = crit_stats.setdefault(cr, {"pass": 0, "n": 0})
+                        d["n"] += 1
+                        d["pass"] += 1 if v["verdict"] == "pass" else 0
+            for cr, d in sorted(crit_stats.items()):
+                p = proportion(d["pass"], d["n"])
+                metrics[f"{cr}_pass_rate"] = p
+                registry_metrics[f"{cr}_pass_rate"] = {"value": p["value"], "ci95": p["ci95"]}
 
         cost_total = sum(float(r["cost_cny"] or 0) for r in rows)
         lat = latency_summary([float(r["latency_ms"] or 0) for r in rows])
