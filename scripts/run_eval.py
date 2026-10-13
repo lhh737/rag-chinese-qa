@@ -17,8 +17,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
+from ragqa.config.settings import get_settings  # noqa: E402
 from ragqa.core import RAGPipeline  # noqa: E402
+from ragqa.evaluation.judges.client import JudgeClient  # noqa: E402
 from ragqa.evaluation.runner import EvaluationRunner, RunConfig  # noqa: E402
+from ragqa.models.factory import get_judge_client  # noqa: E402
 from ragqa.retrieval.store import VectorStore  # noqa: E402
 
 
@@ -30,6 +33,7 @@ def main() -> int:
     parser.add_argument("--mode", default="bare", choices=["bare", "judged"])
     parser.add_argument("--store", default="faiss_db", help="索引目录（注入题用 faiss_db_safety）")
     parser.add_argument("--include-types", default=None, help="逗号分隔：仅跑这些题型/safety_type")
+    parser.add_argument("--limit", type=int, default=None, help="仅取前 N 题（冒烟用）")
     parser.add_argument("--max-cost", type=float, default=5.0)
     parser.add_argument("--concurrency", type=int, default=3)
     parser.add_argument("--run-type", default="baseline")
@@ -57,8 +61,19 @@ def main() -> int:
         notes=args.notes,
         run_id=args.run_id,
         include_types=[t for t in args.include_types.split(",") if t] if args.include_types else None,
+        limit=args.limit,
     )
-    summary = EvaluationRunner(pipeline, cfg).run()
+    judge_client = None
+    if args.mode == "judged":
+        s = get_settings()
+        if not s.judge_model:
+            print("✗ judged 模式需要裁判模型（.env JUDGE_MODEL）")
+            return 2
+        # 与 P4 校准完全一致的裁判配置：extra_body={}（不关思考）、max_tokens 2048
+        judge_client = JudgeClient(model=s.judge_model, client=get_judge_client(),
+                                   extra_body={}, max_tokens=2048)
+        print(f"裁判: {s.judge_model} @ {s.judge_base_url or '(默认端点)'}")
+    summary = EvaluationRunner(pipeline, cfg, judge_client=judge_client).run()
     print(f"\nrun_id={summary['run_id']} | {summary['n_rows']}/{summary['n_items']} 题 | "
           f"成本 ¥{summary['cost']['total_cny']:.4f} | 墙钟 {summary['latency']['wall_min']} 分钟")
     print(f"报告: {summary['report_path']}")

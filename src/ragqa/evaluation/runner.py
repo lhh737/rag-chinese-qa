@@ -97,6 +97,7 @@ class RunConfig:
     out_root: Path = REPO_ROOT / "eval_results"
     judge_prompt_version: str = "v1"
     include_types: list[str] | None = None  # 仅跑指定题型/safety_type（如注入题单独走隔离索引）
+    limit: int | None = None                # 冒烟用：仅取前 N 题（正式评测勿设）
 
 
 class EvaluationRunner:
@@ -121,6 +122,8 @@ class EvaluationRunner:
         if self.cfg.include_types:
             keep = set(self.cfg.include_types)
             items = [i for i in items if (i.type or i.safety_type) in keep]
+        if self.cfg.limit:
+            items = items[: self.cfg.limit]
         return items
 
     @staticmethod
