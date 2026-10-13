@@ -189,6 +189,7 @@ function renderBlind(it){
   <div class="card"><h3>系统回答</h3>
     <div class="answer">${esc(it.answer||"（无）")}</div>
     ${(it.citations&&it.citations.length)? `<div style="margin-top:6px">${citeList(it.citations)}</div>`:""}
+    ${it.marker_hint? `<div class="muted" style="margin-top:6px">🔎 自动解析 · ${esc(it.marker_hint)}</div>`:""}
   </div>
   <div class="card"><h3>逐 criterion 判定（二分）</h3>
     ${criteria.map(cr=>{

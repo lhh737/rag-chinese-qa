@@ -1,0 +1,164 @@
+{"id":"q001","criterion":"answer_correctness","label":"fail","reason":"原因：系统整体拒答，没有覆盖任何一条 key_claim。\n解释：当前上下文仅提供了一段与问题无关的系统指令文本，未包含 SuCI 这一已有工作，也未说明它处理的是人类多模态理解中的主体变化或主体特定虚假相关。系统没有提供任何答案，未覆盖“SuCI 最相关”“处理主体变化”“通过因果解耦消除虚假相关”等判分要点，因此 answer_correctness 失败。","mode":"blind"}
+{"id":"q001","criterion":"faithfulness","label":"pass","reason":"完整文档无 SuCI 依据，拒答忠实","mode":"blind"}
+{"id":"q001","criterion":"citation_accuracy","label":"fail","reason":"检索召回失败，未提供有效的参考资料，导致模型生成失败","mode":"blind"}
+{"id":"q002","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q002","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q002","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q003","criterion":"answer_correctness","label":"fail","reason":"参考答案与 key_claims 要求的是 Mint 和 ProgPrompt。系统回答给出的是 Progprompt 和 Code as Policies，只答对 ProgPrompt，漏掉 Mint，并把 Code as Policies 误当作“Execution / Action Grounding”下同时出现在 Planning 列举中的方法。","mode":"blind"}
+{"id":"q003","criterion":"faithfulness","label":"fail","reason":"参考资料中 Planning 的典型例子确实出现 Progprompt 和 Code as Policies，但并不能支持 Code as Policies 同时被归入“Execution”下的“Action Grounding”。系统回答称“根据参考资料”得出该结论，与上下文不忠实。","mode":"blind"}
+{"id":"q003","criterion":"citation_accuracy","label":"fail","reason":"参考材料中未出现对mint的描述，而正确的参考答案为：Mint 和 ProgPrompt 同时出现在“Action Grounding”与“Planning”相关工作的列举中。，，引用材料无法充分支撑其结论，重点描述了progprompt，导致模型生成误判","mode":"blind"}
+{"id":"q004","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q004","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q004","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q005","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q005","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q005","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q006","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q006","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q006","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q007","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q007","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q007","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q008","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q008","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q008","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q009","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q009","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q009","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q010","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q010","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q010","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q011","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q011","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q011","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q012","criterion":"answer_correctness","label":"fail","reason":"失败：系统回答“根据提供的资料无法回答”，未给出参考答案中的核心信号“连续余弦相似度（consecutive cosine similarity）”，也未说明其定义、取值范围和含义，因此未正确回答问题。","mode":"blind"}
+{"id":"q012","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q012","criterion":"citation_accuracy","label":"fail","reason":"引用不正确，未给出相关的参考材料，导致模型生成失败","mode":"blind"}
+{"id":"q013","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q013","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q013","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q014","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q014","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q014","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q015","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q015","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q015","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q016","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q016","criterion":"answer_correctness","label":"fail","reason":"引用2中有出现相关片段：Xinsen Zhang, Zhenkai Ding, Tianjun Pan, Run Yang,\nChun Kang, Xue Xiong, and Jingnan Gu. 2026b.\nOpsdl: On-policy self-distillation for long-context\nlanguage models.Preprint, arXiv:2604.17535.，，但是没有展开解释的阐述部分，，导致模型未能正确发现，导致生成失败","mode":"blind"}
+{"id":"q016","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q017","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q017","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q017","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q018","criterion":"answer_correctness","label":"fail","reason":"未能给出正确参考材料，导致模型拒绝回答","mode":"blind"}
+{"id":"q018","criterion":"citation_accuracy","label":"fail","reason":"未能给出正确参考","mode":"blind"}
+{"id":"q018","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q019","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q019","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q019","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q020","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q020","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q020","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q021","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q021","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q021","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q022","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q022","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q022","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q031","criterion":"answer_correctness","label":"fail","reason":"引用材料缺失，不足以支撑模型生成正确答案","mode":"blind"}
+{"id":"q031","criterion":"citation_accuracy","label":"fail","reason":"引用材料不足以支撑模型生成正确答案，参考片段：UniSD studies reliable SD along three axes. First,supervision reliability: since self-derived targets can\nbe noisy,Agreementidentifies whether the update is supported by multiple teacher views, whileToken-\nLevel Contrastive Learningseparates useful supervision from plausible but incorrect alternatives. Second,\nrepresentation alignment: beyond output distributions,Feature Matchingtransfers internal representational\nstructure. Third,training stability:EMA Teachersmooths evolving teacher signals, whileClippingprevents\n3，，，后续完全缺失，与题目解答所需仍有一段距离","mode":"blind"}
+{"id":"q031","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q032","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q032","criterion":"citation_accuracy","label":"fail","reason":"缺失，参考材料提到了部分，但后续内容缺失，不足以支撑模型生成完整的正确答案","mode":"blind"}
+{"id":"q032","criterion":"answer_correctness","label":"fail","reason":"失败：系统仅回答了 dDS 部分，未回答“轻量适配器调整嵌入表示”在什么条件下最有效，也未说明两者对表示几何/结构稳定性依赖的共同点，因此未完整完成问题。","mode":"blind"}
+{"id":"q033","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q033","criterion":"citation_accuracy","label":"fail","reason":"参考材料不完整，导致模型生成正确答案失败","mode":"blind"}
+{"id":"q033","criterion":"answer_correctness","label":"fail","reason":"参考材料不完整，导致模型生成正确答案失败","mode":"blind"}
+{"id":"q034","criterion":"answer_correctness","label":"fail","reason":"系统只输出“根据提供的资料无法回答”，没有覆盖任何一个 key_claim。虽然“加速风险”层面的材料确实缺失，但上下文 [1][2][4][5] 已经包含“检索效用”层面的关键证据：查询语言偏好是用户意图的一部分，语言不一致会妨碍阅读、验证或行动；在 RAG 中查询与检索段落语言不匹配还会降低答案正确性，并影响回答语言一致性。系统完全没有利用这些已有信息。","mode":"blind"}
+{"id":"q034","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q034","criterion":"citation_accuracy","label":"fail","reason":"参考材料不相关，，导致模型参考生成失败","mode":"blind"}
+{"id":"q035","criterion":"answer_correctness","label":"fail","reason":"原因：系统整体拒答，没有覆盖任何一条 key_claim。\n解释：上下文确实只包含 PairAlign 的相关材料，完全没有 Latte 的信息，因此无法完成两者比较；但参考答案要求分别说明 PairAlign 与 Latte 的机制和所突破的限制，系统连已有的 PairAlign 部分也没有回答，整体未完成问题，因此 answer_correctness 失败。","mode":"blind"}
+{"id":"q035","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q035","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q036","criterion":"answer_correctness","label":"fail","reason":"原因：系统整体拒答，没有覆盖任何一条 key_claim。\n解释：上下文 [1] 已包含 2401.15884 的 CRAG 置信度触发机制，明确列出 CORRECT、INCORRECT、AMBIGUOUS 三类动作；[4] 来自 2308.11432，其 Remark 明确比较了 fine-tuning 与 without fine-tuning 的能力获取策略。系统声称资料不足、无法关联，未利用这些已有信息，当然，也和参考资料中不涉及文档编号，有这一部分原因在，使得模型未能有效锁定相关参考，因此 answer_correctness 失败。","mode":"blind"}
+{"id":"q036","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q036","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q037","criterion":"answer_correctness","label":"fail","reason":"原因：系统整体拒答，没有覆盖任何一条 key_claim。\n解释：上下文 [1][2] 已经明确给出医疗长视频理解的核心瓶颈是“临床证据检索与解释”，并指出需要证据感知的选择与压缩、检索关键帧并抑制冗余上下文，而非简单增加采样帧预算。问题本身也说明了前者的思路是“自适应检索”（何时需要检索）。即使缺少前文具体段落，系统仍可结合后文瓶颈与问题中给出的自适应检索概念，推断迁移后最可能优先缓解“证据检索与解释”瓶颈，并说明理由。系统却直接以“无法回答”收尾，没有利用已有后文信息，因此 answer_correctness 失败。","mode":"blind"}
+{"id":"q037","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q037","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q038","criterion":"answer_correctness","label":"fail","reason":"原因：系统整体拒答，没有覆盖任何一条 key_claim。\n解释：上下文 [1][2][3] 已经包含 SIRA 的严格单次检索设置：一次 LLM 推理、可选语料统计检查、只发一次 BM25 查询、不返回答案片段；也说明 SIRA 用文档频率等轻量语料统计来验证和剪枝候选词，从而在无法读取检索片段时仍能构造有效词汇查询。虽然上下文没有明确提到 IRC-Bench 的长篇回忆叙事场景，因此“必要性”部分确实缺少直接依据，但系统连已有的 SIRA 单次检索机制和可行性都没有回答，整体未覆盖任何判分要点，因此 answer_correctness 失败。","mode":"blind"}
+{"id":"q038","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q038","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q039","criterion":"answer_correctness","label":"fail","reason":"原因：系统整体拒答，没有覆盖任何一条 key_claim。\n解释：上下文 [2] 已经给出非结构化稠密检索易检索伪证据、多跳推理困难，以及图基 RAG 利用结构化 KG 提供逻辑可解释性的内容，足以覆盖前两条判分要点；但 GATHER 的超实体查询、多源图遍历、无 LLM 检索等关键信息在上下文中完全缺失。系统没有回答可回答的部分，整体未完成问题，因此 answer_correctness 失败。","mode":"blind"}
+{"id":"q039","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q039","criterion":"citation_accuracy","label":"pass","reason":"原因：系统整体拒答，没有覆盖任何一条 key_claim。\n解释：上下文 [2] 已经给出非结构化稠密检索易检索伪证据、多跳推理困难，以及图基 RAG 利用结构化 KG 提供逻辑可解释性的内容，足以覆盖前两条判分要点；但 GATHER 的超实体查询、多源图遍历、无 LLM 检索等关键信息在上下文中完全缺失。系统没有回答可回答的部分，整体未完成问题，因此 answer_correctness 失败。","mode":"blind"}
+{"id":"q040","criterion":"answer_correctness","label":"fail","reason":"原因：系统整体拒答，没有覆盖任何一条 key_claim。\n解释：上下文已包含 TabReD 残差相关性高、有效仿射组合空间狭窄、EWLS 改进空间小，以及显著收益需要部署时非平稳性和非冗余误差方向等证据，足以回答 TabReD 一侧；但多模态虚假相关一侧确实缺失。系统没有利用已有信息回答可回答部分，也没有完成两段对比，因此 answer_correctness 失败。","mode":"blind"}
+{"id":"q040","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q040","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q041","criterion":"answer_correctness","label":"fail","reason":"原因：系统整体拒答，没有覆盖任何一条 key_claim。\n解释：上下文已经包含 GATHER 如何将多基因查询重构为多源收敛问题、如何通过多源遍历和基因加权识别拓扑收敛点作为超实体、以及相关性来自多源联合支持而非单个源实体等内容，足以回答段落B及部分结合推测；但系统连这些已有信息都没有利用。段落A关于单查询检索的排序/表示瓶颈和稠密单向量瓶颈确实缺失，导致完整对比无法完成，但系统整体拒答，未覆盖任何判分要点，因此 answer_correctness 失败。","mode":"blind"}
+{"id":"q041","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q041","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q046","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q046","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q046","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q047","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q047","criterion":"citation_accuracy","label":"fail","reason":"原因：未提供相关性参考资料。\n解释：上下文 [1] 仅涉及 KG 路径采样与课程生成，与 NUTS 无关；其余参考资料也未包含该采样方法的提出者、年份、期刊或卷期页码。系统没有提供任何答案，未覆盖“NUTS、Hoffman 和 Gelman、JMLR 2014”等判分要点，因此 answer_correctness 失败。","mode":"blind"}
+{"id":"q047","criterion":"answer_correctness","label":"fail","reason":"原因：系统整体拒答，没有覆盖任何一条 key_claim。\n解释：上下文 [1] 仅涉及 KG 路径采样与课程生成，与 NUTS 无关；其余参考资料也未包含该采样方法的提出者、年份、期刊或卷期页码。系统没有提供任何答案，未覆盖“NUTS、Hoffman 和 Gelman、JMLR 2014”等判分要点，因此 answer_correctness 失败。","mode":"blind"}
+{"id":"q048","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q048","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q048","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q049","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q049","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q049","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q050","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q050","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q050","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q051","criterion":"answer_correctness","label":"fail","reason":"原因：系统答非所问，没有覆盖任何一条 key_claim。\n解释：问题问的是 TGS-RAG 在 HotpotQA 上的消融实验，比较去掉 Bridging 和去掉 Re-ranking 哪个下降最厉害。参考答案明确是去掉 Bridging 后下降最明显。但系统回答的是 DCAN 框架在 CFI-V2 上的消融实验，讨论的是 FACL 和 BACL 模块，与问题完全无关。因此 answer_correctness 失败。","mode":"blind"}
+{"id":"q051","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q051","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q052","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q052","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q052","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q053","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q053","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q053","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q056","criterion":"oos_refusal","label":"pass","reason":"","mode":"blind"}
+{"id":"q057","criterion":"oos_refusal","label":"pass","reason":"","mode":"blind"}
+{"id":"q058","criterion":"oos_refusal","label":"pass","reason":"","mode":"blind"}
+{"id":"q059","criterion":"oos_refusal","label":"pass","reason":"","mode":"blind"}
+{"id":"q060","criterion":"oos_refusal","label":"pass","reason":"","mode":"blind"}
+{"id":"q061","criterion":"oos_refusal","label":"pass","reason":"","mode":"blind"}
+{"id":"q062","criterion":"oos_refusal","label":"pass","reason":"","mode":"blind"}
+{"id":"q063","criterion":"oos_refusal","label":"pass","reason":"","mode":"blind"}
+{"id":"q066","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q066","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q066","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q067","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q067","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q067","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q068","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q068","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q068","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q069","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q069","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q069","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q070","criterion":"answer_correctness","label":"fail","reason":"原因：系统整体拒答，没有覆盖任何一条 key_claim。\n解释：上下文 [2] 已经明确给出该框架是 lightweight inference-time tool harness，requires no model fine-tuning，且 BRIGHT 结果为 49.6% recall@1（+21.8 pp over the best embedding baseline）。这些信息足以直接否定问题中“只高 11.8 个百分点”和“需要微调”两个错误前提，并回答它仍属于轻量级推理时方案。系统却直接以“无法回答”收尾，没有利用已有证据进行事实校验和反驳，因此 answer_correctness 失败。","mode":"blind"}
+{"id":"q070","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q070","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q071","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q071","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q071","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q072","criterion":"answer_correctness","label":"fail","reason":"原因：系统以“无法回答”收尾，没有明确否定错误前提，也没有完成问题要求的比较判断。\n解释：上下文 [1] 已经明确写出 Transformer 由 Vaswani et al. 在 2017 年提出，足以说明“2015 年提出”这一前提错误；但系统只转述了 2017 年，并未明确说“不对”，也没有回答“是否比 ResNet 早一年”，更没有说明 Attention Is All You Need、完全基于自注意力并摒弃 RNN/CNN 等要点。因此 answer_correctness 失败。","mode":"blind"}
+{"id":"q072","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q072","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q073","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q073","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q073","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q074","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q074","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q074","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q075","criterion":"answer_correctness","label":"pass","reason":"","mode":"blind"}
+{"id":"q075","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q075","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}
+{"id":"q076","criterion":"answer_correctness","label":"fail","reason":"原因：系统以“无法回答”收尾，没有明确否定问题中的错误前提，也没有完成“是否同一批作者”的纠正。\n解释：上下文 [2] 已显示 RaR 引用 [8]、CoT 引用 [60]，且未说明二者作者相同。参考答案要求指出该前提错误，应回答“不对”。系统只说资料未提及作者身份，未直接纠正错误前提，未覆盖关键判分要点，因此 answer_correctness 失败。","mode":"blind"}
+{"id":"q076","criterion":"faithfulness","label":"pass","reason":"","mode":"blind"}
+{"id":"q076","criterion":"citation_accuracy","label":"pass","reason":"","mode":"blind"}

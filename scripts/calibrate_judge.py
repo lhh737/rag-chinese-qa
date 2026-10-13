@@ -298,23 +298,24 @@ def main() -> int:
             )
         L.append("")
 
-    # citation_accuracy 语义层 vs composed 对照
-    L.append("## citation_accuracy：judge 语义层 vs composed（代码层叠加）\n")
-    L.append("| 段 | n 对 | 语义层 一致率 | composed 一致率 | 代码层判负数 |")
-    L.append("|---|---|---|---|---|")
-    for seg in segs_report:
-        mj = judge_only_m[seg]["citation_accuracy"]
-        mc = report_m[seg]["citation_accuracy"]
-        n_code_fail = sum(
-            1 for r in results
-            if r["criterion"] == "citation_accuracy"
-            and (seg == "all" or r["segment"] == seg)
-            and r.get("code") and not r["code"]["pass"]
-        )
-        aj = fmt_pct(mj["agreement"])
-        ac = fmt_pct(mc["agreement"])
-        L.append(f"| {seg} | {mc['n']} | {aj} | {ac} | {n_code_fail} |")
-    L.append("")
+    # citation_accuracy 语义层 vs composed 对照（仅当本轮请求了该 criterion）
+    if "citation_accuracy" in criteria:
+        L.append("## citation_accuracy：judge 语义层 vs composed（代码层叠加）\n")
+        L.append("| 段 | n 对 | 语义层 一致率 | composed 一致率 | 代码层判负数 |")
+        L.append("|---|---|---|---|---|")
+        for seg in segs_report:
+            mj = judge_only_m[seg]["citation_accuracy"]
+            mc = report_m[seg]["citation_accuracy"]
+            n_code_fail = sum(
+                1 for r in results
+                if r["criterion"] == "citation_accuracy"
+                and (seg == "all" or r["segment"] == seg)
+                and r.get("code") and not r["code"]["pass"]
+            )
+            aj = fmt_pct(mj["agreement"])
+            ac = fmt_pct(mc["agreement"])
+            L.append(f"| {seg} | {mc['n']} | {aj} | {ac} | {n_code_fail} |")
+        L.append("")
 
     # 分歧清单
     L.append("## 分歧清单（人工 vs composed）\n")
