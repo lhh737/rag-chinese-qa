@@ -17,10 +17,11 @@
 `{question}` `{answer}` `{context}` `{context_numbered}` `{n_contexts}` `{ground_truth}`
 `{key_claims}` `{expected_behavior}` `{injection_marker}`。
 
-**状态（2026-10-12）**：P4 各 criterion prompt **v1 已撰写**（边界规则对齐
-`docs/annotation-guideline.md` v1 + 错误分析 taxonomy v1；质量四件套的 few-shot 取自校准集
-"示例段"，安全三件套 few-shot 待安全轻量校准时补充）。校准运行器：
-`scripts/calibrate_judge.py`（调参段 → 测量段纪律内置）。目录：
+**状态（2026-10-13）**：**v1 已冻结**——三段式校准通过（校准集 164 判定零分歧；测量段
+TPR/TNR 均 1.000，小样本声明与事件实录见 `eval_results/calibration/reports/P4_calibration_report.md`）。
+主裁判 `mimo-v2.6-flash`（异族）+ 第二裁判 `deepseek-v4-flash`（20% 交叉 22/22）。
+**防漂移**：任何 prompt 或裁判模型变更 → 重跑测量段校准（缓存键含 prompt 内容哈希）。
+校准运行器：`scripts/calibrate_judge.py`。目录：
 
 - `answer_correctness/vN.md` —— 对照 ground_truth + key_claims 的要点完备性
 - `faithfulness/vN.md` —— 每个可核验陈述均被上下文支撑
