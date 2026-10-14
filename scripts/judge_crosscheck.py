@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -60,6 +61,8 @@ def main() -> int:
     ap.add_argument("--run-id", required=True)
     ap.add_argument("--sample", type=int, default=5, help="每 K 条取 1（默认 5 ≈ 20%）")
     ap.add_argument("--model", default=None, help="第二裁判模型（缺省取 .env JUDGE_MODEL_SECOND）")
+    ap.add_argument("--endpoint", default="official", choices=["official", "tokenhub"],
+                    help="裁判端点：official=DeepSeek 官方；tokenhub=异族锚点（mimo 等）用")
     ap.add_argument("--prompt-version", default="v1")
     ap.add_argument("--max-tokens", type=int, default=2048)
     ap.add_argument("--concurrency", type=int, default=4)
@@ -77,7 +80,22 @@ def main() -> int:
     if not model:
         print("✗ 未配置第二裁判（--model 或 .env JUDGE_MODEL_SECOND）")
         return 2
-    judge2 = JudgeClient(model=model, cache=JudgeCache(), client=get_judge_client(),
+    client2 = get_judge_client()
+    if args.endpoint == "tokenhub":
+        key = os.environ.get("TOKENHUB_API_KEY", "").strip()
+        if not key:
+            envp = REPO_ROOT / ".env"
+            if envp.is_file():
+                for line in envp.read_text(encoding="utf-8").splitlines():
+                    if line.strip().startswith("TOKENHUB_API_KEY="):
+                        key = line.split("=", 1)[1].strip()
+                        break
+        if not key:
+            print("✗ 未找到 TOKENHUB_API_KEY（环境变量或 .env）")
+            return 2
+        from openai import OpenAI
+        client2 = OpenAI(api_key=key, base_url="https://tokenhub.tencentmaas.com/v1")
+    judge2 = JudgeClient(model=model, cache=JudgeCache(), client=client2,
                          extra_body={}, max_tokens=args.max_tokens)
 
     sampled = [r for i, r in enumerate(sorted(rows, key=lambda x: x["id"])) if i % max(1, args.sample) == 0]

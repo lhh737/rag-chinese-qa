@@ -40,6 +40,9 @@ def main() -> int:
     parser.add_argument("--no-hyde", action="store_true", help="消融：关闭 HyDE")
     parser.add_argument("--fusion", default=None, choices=["rrf", "merge"], help="融合策略替换（消融 A4）")
     parser.add_argument("--rrf-k", type=int, default=None, help="RRF k 值（扫描用）")
+    parser.add_argument("--base-context-k", type=int, default=None, help="最终上下文基数（迭代实验）")
+    parser.add_argument("--max-context-k", type=int, default=None, help="最终上下文上限（迭代实验）")
+    parser.add_argument("--gen-prompt", default=None, help="生成 prompt 版本（如 v2；缺省按 config）")
     parser.add_argument("--max-cost", type=float, default=5.0)
     parser.add_argument("--concurrency", type=int, default=3)
     parser.add_argument("--run-type", default="baseline")
@@ -63,11 +66,19 @@ def main() -> int:
         updates["fusion"] = args.fusion
     if args.rrf_k is not None:
         updates["rrf_k"] = args.rrf_k
+    if args.base_context_k is not None:
+        updates["base_context_k"] = args.base_context_k
+    if args.max_context_k is not None:
+        updates["max_context_k"] = args.max_context_k
     if updates:
         rcfg = rcfg.model_copy(update=updates)
     if args.no_hyde:
         rcfg = rcfg.model_copy(update={"hyde": rcfg.hyde.model_copy(update={"enabled": False})})
-    pipeline = RAGPipeline(store=store, retrieval_config=rcfg)
+    gcfg = None
+    if args.gen_prompt:
+        from ragqa.config.loader import load_generation_config
+        gcfg = load_generation_config().model_copy(update={"prompt_version": args.gen_prompt})
+    pipeline = RAGPipeline(store=store, retrieval_config=rcfg, generation_config=gcfg)
     cfg = RunConfig(
         dataset_path=REPO_ROOT / dataset,
         suite=args.suite,
