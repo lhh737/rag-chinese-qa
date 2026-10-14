@@ -23,6 +23,8 @@
 
 ## 结果速览（全部可复现，见 `eval_results/`）
 
+<p align="center"><img src="assets/results.svg" width="760" alt="关键结果速览：基线 vs Holdout 验收；消融结论"></p>
+
 | 指标（质量集 dev 60 / holdout 20） | 基线（R1） | **Holdout 验收** |
 |---|---|---|
 | Recall@5（文档级） | 0.717 | **0.800** |
@@ -46,24 +48,15 @@
 
 ## 系统架构
 
-```
-用户提问
-  │
-  ├─→ 粗筛   FAISS 向量 (×24) ─┐
-  │          BM25 稀疏  (×24) ─┼─ RRF 融合（k 配置化）→ 候选池
-  │                            ┘
-  ├─→ 精排   qwen3.7-text-rerank → Top 12（消融实证：本模块贡献最显著）
-  │
-  ├─→ 上下文 父子块还原 + 动态 TopK（4–8）→ 编号上下文 [1..n]
-  │
-  └─→ 生成   deepseek-flash → 逐句行内引用 [n] + 拒答边界
-```
+<p align="center"><img src="assets/architecture.svg" width="760" alt="系统架构：检索管线与评测体系"></p>
 
 - **父子块**：子块（400 字）检索、父块（1200 字）还原上下文；
 - **行内引用**：答案句 ↔ `[n]` ↔ 上下文块逐句可解析（含编号合法性代码校验）；
 - **统一门面**：CLI / Gradio / FastAPI / 评测引擎共用 `RAGPipeline`，离线零 LangChain（DR-001）。
 
 ## 评测体系（六环闭环）
+
+<p align="center"><img src="assets/eval-loop.svg" width="760" alt="评测主轴：六环闭环"></p>
 
 | 环 | 交付物 |
 |---|---|

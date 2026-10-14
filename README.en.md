@@ -25,6 +25,8 @@
 
 ## Results at a glance (all reproducible under `eval_results/`)
 
+<p align="center"><img src="assets/results.svg" width="760" alt="Results: baseline vs holdout; ablation findings"></p>
+
 | Metric (quality set, dev 60 / holdout 20) | Baseline (R1) | **Holdout acceptance** |
 |---|---|---|
 | Recall@5 (document-level) | 0.717 | **0.800** |
@@ -52,18 +54,7 @@
 
 ## Architecture
 
-```
-Question
-  │
-  ├─→ Recall    FAISS dense (×24) ─┐
-  │             BM25 sparse (×24) ─┼─ RRF fusion (configurable k) → candidate pool
-  │                                ┘
-  ├─→ Rerank    qwen3.7-text-rerank → top 12 (ablation-proven as the key contributor)
-  │
-  ├─→ Context   parent-child chunk restore + dynamic TopK (4–8) → numbered contexts [1..n]
-  │
-  └─→ Generate  deepseek-flash → sentence-level inline citations [n] + refusal boundary
-```
+<p align="center"><img src="assets/architecture.svg" width="760" alt="Architecture: retrieval pipeline and evaluation system"></p>
 
 - **Parent-child chunks**: children (400 chars) for retrieval, parents (1200) for context;
 - **Inline citations**: answer sentence ↔ `[n]` ↔ context block, parseable per sentence
@@ -72,6 +63,8 @@ Question
   fully LangChain-free (DR-001).
 
 ## Evaluation system (the six-stage loop)
+
+<p align="center"><img src="assets/eval-loop.svg" width="760" alt="The six-stage evaluation loop"></p>
 
 | Stage | Deliverable |
 |---|---|

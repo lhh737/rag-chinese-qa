@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="368" viewBox="0 0 760 368" role="img" aria-label="评测主轴：六环闭环">
+  <title>评测主轴：六环闭环（构建 → 评测 → 可见 → 归因 → 迭代 → 安全）</title>
+  <defs>
+    <marker id="loop-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#b9b8b2"/>
+    </marker>
+  </defs>
+  <rect x="0.5" y="0.5" width="759" height="367" rx="14" fill="#fcfcfb" stroke="#e5e4e0"/>
+  <g font-family="-apple-system,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif">
+    <text x="30" y="32" font-size="15" font-weight="600" fill="#0b0b0b">评测主轴 · 六环闭环</text>
+
+    <!-- 环向箭头（r=100 弧段，顺时针） -->
+    <g stroke="#b9b8b2" stroke-width="2" fill="none" marker-end="url(#loop-arr)">
+      <path d="M422.3,99.4 A100,100 0 0 1 437.4,108.1"/>
+      <path d="M479.6,181.3 A100,100 0 0 1 479.6,198.7"/>
+      <path d="M437.4,271.9 A100,100 0 0 1 422.3,280.6"/>
+      <path d="M337.7,280.6 A100,100 0 0 1 322.6,271.9"/>
+      <path d="M280.4,198.7 A100,100 0 0 1 280.4,181.3"/>
+      <path d="M322.6,108.1 A100,100 0 0 1 337.7,99.4"/>
+    </g>
+
+    <!-- 六节点（r=40） -->
+    <!-- 构建（顶） -->
+    <circle cx="380" cy="90" r="40" fill="#f4f3ef" stroke="#d6d5cf"/>
+    <text x="380" y="85" text-anchor="middle" font-size="12.5" font-weight="600" fill="#0b0b0b">构建</text>
+    <text x="380" y="101" text-anchor="middle" font-size="9" fill="#52514e">评测集 80+20</text>
+    <!-- 评测（右上，强调） -->
+    <circle cx="467" cy="140" r="40" fill="#eef4fc" stroke="#2a78d6" stroke-width="1.5"/>
+    <text x="467" y="135" text-anchor="middle" font-size="12.5" font-weight="600" fill="#0b0b0b">评测</text>
+    <text x="467" y="151" text-anchor="middle" font-size="9" fill="#2a78d6">盲标校准</text>
+    <!-- 可见（右下） -->
+    <circle cx="467" cy="240" r="40" fill="#f4f3ef" stroke="#d6d5cf"/>
+    <text x="467" y="235" text-anchor="middle" font-size="12.5" font-weight="600" fill="#0b0b0b">可见</text>
+    <text x="467" y="251" text-anchor="middle" font-size="9" fill="#52514e">查看器</text>
+    <!-- 归因（底） -->
+    <circle cx="380" cy="290" r="40" fill="#f4f3ef" stroke="#d6d5cf"/>
+    <text x="380" y="285" text-anchor="middle" font-size="12.5" font-weight="600" fill="#0b0b0b">归因</text>
+    <text x="380" y="301" text-anchor="middle" font-size="9" fill="#52514e">规则+抽检</text>
+    <!-- 迭代（左下） -->
+    <circle cx="293" cy="240" r="40" fill="#f4f3ef" stroke="#d6d5cf"/>
+    <text x="293" y="235" text-anchor="middle" font-size="12.5" font-weight="600" fill="#0b0b0b">迭代</text>
+    <text x="293" y="251" text-anchor="middle" font-size="9" fill="#52514e">配对检验</text>
+    <!-- 安全（左上） -->
+    <circle cx="293" cy="140" r="40" fill="#f4f3ef" stroke="#d6d5cf"/>
+    <text x="293" y="135" text-anchor="middle" font-size="12.5" font-weight="600" fill="#0b0b0b">安全</text>
+    <text x="293" y="151" text-anchor="middle" font-size="9" fill="#52514e">防御对照</text>
+
+    <!-- 中心 -->
+    <text x="380" y="185" text-anchor="middle" font-size="12.5" font-weight="600" fill="#0b0b0b">评测驱动质量工程</text>
+    <text x="380" y="203" text-anchor="middle" font-size="9.5" fill="#8a897f">（先有尺子，再谈优化）</text>
+
+    <!-- 底部说明 -->
+    <text x="30" y="352" font-size="10.5" fill="#52514e">每环均有交付物与留档：评测集 hash · judge 冻结哈希 · Run Registry · DR 决策记录 · 复标/抽检一致率 —— 全部在 eval_results/ 与 decisions/ 可查</text>
+  </g>
+</svg>

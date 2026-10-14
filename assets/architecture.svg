@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="412" viewBox="0 0 760 412" role="img" aria-label="系统架构：检索管线与评测体系">
+  <title>系统架构：检索管线与评测体系（同一 RAGPipeline 入口）</title>
+  <defs>
+    <marker id="arch-arr" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#b9b8b2"/>
+    </marker>
+  </defs>
+  <rect x="0.5" y="0.5" width="759" height="411" rx="14" fill="#fcfcfb" stroke="#e5e4e0"/>
+  <text x="30" y="34" font-family="-apple-system,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif" font-size="15" font-weight="600" fill="#0b0b0b">系统架构 · 检索管线与评测体系（同一 RAGPipeline 入口）</text>
+
+  <!-- 四个流程盒（y=64, h=104, w=158） -->
+  <g font-family="-apple-system,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif">
+    <!-- 1 粗筛 -->
+    <rect x="31" y="64" width="158" height="104" rx="10" fill="#f4f3ef" stroke="#e5e4e0"/>
+    <text x="47" y="92" font-size="13" font-weight="600" fill="#0b0b0b">① 粗筛召回</text>
+    <text x="47" y="114" font-size="10.5" fill="#52514e">FAISS 向量 ×24</text>
+    <text x="47" y="131" font-size="10.5" fill="#52514e">BM25 稀疏 ×24</text>
+    <text x="47" y="148" font-size="10.5" fill="#52514e">→ RRF 融合（k 可配）</text>
+    <!-- 2 精排（强调） -->
+    <rect x="211" y="64" width="158" height="104" rx="10" fill="#eef4fc" stroke="#2a78d6" stroke-width="1.5"/>
+    <text x="227" y="92" font-size="13" font-weight="600" fill="#0b0b0b">② 精排</text>
+    <text x="227" y="114" font-size="10.5" fill="#52514e">qwen3.7-text-rerank</text>
+    <text x="227" y="131" font-size="10.5" fill="#52514e">→ Top 12</text>
+    <text x="227" y="152" font-size="9.5" font-weight="600" fill="#2a78d6">消融实证：关键贡献</text>
+    <!-- 3 上下文 -->
+    <rect x="391" y="64" width="158" height="104" rx="10" fill="#f4f3ef" stroke="#e5e4e0"/>
+    <text x="407" y="92" font-size="13" font-weight="600" fill="#0b0b0b">③ 上下文组装</text>
+    <text x="407" y="114" font-size="10.5" fill="#52514e">父子块还原</text>
+    <text x="407" y="131" font-size="10.5" fill="#52514e">动态 TopK 4–8</text>
+    <text x="407" y="148" font-size="10.5" fill="#52514e">→ 编号上下文 [1..n]</text>
+    <!-- 4 生成 -->
+    <rect x="571" y="64" width="158" height="104" rx="10" fill="#f4f3ef" stroke="#e5e4e0"/>
+    <text x="587" y="92" font-size="13" font-weight="600" fill="#0b0b0b">④ 生成作答</text>
+    <text x="587" y="114" font-size="10.5" fill="#52514e">deepseek-flash</text>
+    <text x="587" y="131" font-size="10.5" fill="#52514e">行内引用 [n]</text>
+    <text x="587" y="148" font-size="10.5" fill="#52514e">拒答边界</text>
+    <!-- 箭头 -->
+    <line x1="189" y1="116" x2="209" y2="116" stroke="#b9b8b2" stroke-width="2" marker-end="url(#arch-arr)"/>
+    <line x1="369" y1="116" x2="389" y2="116" stroke="#b9b8b2" stroke-width="2" marker-end="url(#arch-arr)"/>
+    <line x1="549" y1="116" x2="569" y2="116" stroke="#b9b8b2" stroke-width="2" marker-end="url(#arch-arr)"/>
+    <!-- 连接线：管线 → 评测带 -->
+    <line x1="380" y1="170" x2="380" y2="208" stroke="#b9b8b2" stroke-width="1.5" stroke-dasharray="4 3"/>
+    <text x="392" y="194" font-size="9.5" fill="#8a897f">全链路 trace</text>
+
+    <!-- 评测带 -->
+    <rect x="31" y="210" width="698" height="122" rx="10" fill="#f7f7f5" stroke="#e5e4e0"/>
+    <text x="47" y="236" font-size="12.5" font-weight="600" fill="#0b0b0b">评测体系（每一环都有留档可回溯）</text>
+    <g>
+      <rect x="47" y="250" width="212" height="62" rx="8" fill="#ffffff" stroke="#e5e4e0"/>
+      <text x="59" y="272" font-size="11" font-weight="600" fill="#0b0b0b">Runner + Registry</text>
+      <text x="59" y="290" font-size="9.5" fill="#52514e">每次运行：配置指纹 / 指标 / 成本</text>
+      <text x="59" y="304" font-size="9.5" fill="#52514e">断点续跑 · 成本护栏</text>
+      <rect x="274" y="250" width="212" height="62" rx="8" fill="#ffffff" stroke="#e5e4e0"/>
+      <text x="286" y="272" font-size="11" font-weight="600" fill="#0b0b0b">自研 Judge（TPR/TNR）</text>
+      <text x="286" y="290" font-size="9.5" fill="#52514e">164 条人工盲标校准 · 零分歧</text>
+      <text x="286" y="304" font-size="9.5" fill="#52514e">第二裁判 20% 交叉 + 防漂移</text>
+      <rect x="501" y="250" width="212" height="62" rx="8" fill="#ffffff" stroke="#e5e4e0"/>
+      <text x="513" y="272" font-size="11" font-weight="600" fill="#0b0b0b">归因引擎</text>
+      <text x="513" y="290" font-size="9.5" fill="#52514e">taxonomy v1 规则 + 证据</text>
+      <text x="513" y="304" font-size="9.5" fill="#52514e">人工抽检 20/20 一致</text>
+    </g>
+
+    <text x="30" y="362" font-size="10.5" fill="#52514e">CLI / Gradio / FastAPI / 评测引擎共用同一入口；trace 记录配置指纹 config_id（如 vec24_bm2524_rrf60_rr12_k4-8_hyde0_rr1bm1）</text>
+    <text x="30" y="382" font-size="10" fill="#8a897f">生成：deepseek-flash · 嵌入：qwen3.7-text-embedding-flash · 重排：qwen3.7-text-rerank · 裁判：deepseek-flash（v1.1 校准）+ deepseek-v4-pro（交叉）</text>
+  </g>
+</svg>
