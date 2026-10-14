@@ -99,7 +99,7 @@ def build_ui() -> gr.Blocks:
     with gr.Blocks(title="RAG 中文文档问答系统") as demo:
         gr.Markdown(
             "## RAG 中文文档问答系统\n"
-            "HyDE + 混合检索（向量/BM25 + RRF）+ 重排 + 父子块 + 行内引用 [n]"
+            "混合检索（向量/BM25 + RRF）+ 重排 + 父子块 + 行内引用 [n] + 拒答边界 · 全程可评测可回溯"
         )
         with gr.Row():
             with gr.Column(scale=1):
