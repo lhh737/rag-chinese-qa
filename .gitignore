@@ -53,3 +53,6 @@ Thumbs.db
 
 # 冒烟/评测的临时索引产物（报告与 traces 入库，索引不入库）
 eval_results/*/index/
+
+# RAGAS 隔离对照环境（附录级工具对照，不入库）
+.ragas-env/
