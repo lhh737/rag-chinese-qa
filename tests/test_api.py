@@ -12,7 +12,8 @@ from ragqa.types import Citation, ContextBlock, QueryResult  # noqa: E402
 
 class _FakeStore:
     is_empty = False
-    meta = {"n_docs": 106, "n_chunks": 32501, "dim": 1024, "embed_model": "test-embed"}
+    # meta 键对齐真实索引文件（index_meta.json: dim/embed_model/count/pipeline_version）
+    meta = {"count": 32501, "dim": 1024, "embed_model": "test-embed", "pipeline_version": "test-v1"}
 
 
 class _FakeCfg:
