@@ -1165,6 +1165,7 @@ version = "2.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "faiss-cpu" },
+    { name = "fastapi" },
     { name = "gradio" },
     { name = "jieba" },
     { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
@@ -1177,6 +1178,7 @@ dependencies = [
     { name = "pyyaml" },
     { name = "rank-bm25" },
     { name = "requests" },
+    { name = "uvicorn" },
 ]
 
 [package.optional-dependencies]
@@ -1192,6 +1194,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "faiss-cpu", specifier = "==1.13.2" },
+    { name = "fastapi", specifier = ">=0.142.2" },
     { name = "gradio", specifier = "==5.9.1" },
     { name = "jieba", specifier = "==0.42.1" },
     { name = "numpy", specifier = ">=2.0" },
@@ -1204,6 +1207,7 @@ requires-dist = [
     { name = "rank-bm25", specifier = "==0.2.2" },
     { name = "requests", specifier = ">=2.31" },
     { name = "sentence-transformers", marker = "extra == 'local'", specifier = ">=3.3.1" },
+    { name = "uvicorn", specifier = ">=0.54.0" },
 ]
 provides-extras = ["local"]
 

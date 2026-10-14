@@ -4,6 +4,7 @@
   ragqa documents                                      # 已索引文档清单
   ragqa query "问题" [--prompt-version vN] [--trace-out FILE] [--json]
   ragqa smoke [--n-docs 20] [--out DIR]                # 冒烟：小索引 + 固定查询 + 小评测（Recall@5）
+  ragqa serve [--host H] [--port P]                    # FastAPI 服务（/health /documents /query）
 """
 from __future__ import annotations
 
@@ -196,6 +197,14 @@ def cmd_smoke(args: argparse.Namespace) -> int:
 
 # ── main ───────────────────────────────────────────────────
 
+def cmd_serve(args: argparse.Namespace) -> int:
+    """启动 FastAPI 服务（uvicorn factory 模式）。"""
+    import uvicorn
+
+    uvicorn.run("ragqa.api:create_app", factory=True, host=args.host, port=args.port)
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="ragqa", description="RAG 中文问答 · 评测主线 CLI")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -221,6 +230,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_smoke.add_argument("--n-queries", type=int, default=5)
     p_smoke.add_argument("--out", default=None, help="输出目录（默认 eval_results/smoke-<时间>）")
     p_smoke.set_defaults(func=cmd_smoke)
+
+    p_serve = sub.add_parser("serve", help="启动 FastAPI 服务（/health /documents /query）")
+    p_serve.add_argument("--host", default="127.0.0.1")
+    p_serve.add_argument("--port", type=int, default=8000)
+    p_serve.set_defaults(func=cmd_serve)
 
     return parser
 

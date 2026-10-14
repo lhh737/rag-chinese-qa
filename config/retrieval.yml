@@ -20,7 +20,8 @@ base_context_k: 4
 max_context_k: 8
 
 # HyDE（假设性文档嵌入）
+# 2026-10-14（DR-003）：默认关闭——P5 消融 A2 实证净贡献≈0（质量不劣、成本 −45%）；开启即回退
 hyde:
-  enabled: true
+  enabled: false
   max_tokens: 256
   temperature: 0.0
