@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="760" height="540" viewBox="0 0 760 540" role="img" aria-label="关键结果：基线对比与消融结论">
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="550" viewBox="0 0 760 550" role="img" aria-label="关键结果：基线对比与消融结论">
   <title>关键结果：基线 → Holdout 验收；移除模块后的误拒率变化</title>
-  <rect x="0.5" y="0.5" width="759" height="539" rx="14" fill="#fcfcfb" stroke="#e5e4e0"/>
+  <rect x="0.5" y="0.5" width="759" height="549" rx="14" fill="#fcfcfb" stroke="#e5e4e0"/>
   <g font-family="-apple-system,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif">
     <text x="30" y="32" font-size="15" font-weight="600" fill="#0b0b0b">关键结果速览（全部可回溯至 Run Registry）</text>
 
@@ -64,7 +64,7 @@
       <text x="535.5" y="290">引用准确性</text>
       <text x="668.5" y="290">误拒率 ★</text>
     </g>
-    <text x="30" y="308" font-size="9.5" fill="#8a897f">★ 误拒率越低越好（其余越高越好）；judge 指标为冻结版裁判（P4 v1.1，164 条盲标校准）</text>
+    <text x="30" y="308" font-size="10" fill="#8a897f">★ 误拒率越低越好（其余越高越好）；judge 指标为冻结版裁判（P4 v1.1，164 条盲标校准）</text>
 
     <!-- ══ 面板 B：消融 ══ -->
     <text x="30" y="340" font-size="12.5" font-weight="600" fill="#0b0b0b">② 移除模块 / 对照实验后的误拒率变化（pp；正值 = 恶化）</text>
@@ -96,6 +96,7 @@
       <path d="M260,476 H261.5 Q263.5,476 263.5,478 V490 Q263.5,492 261.5,492 H260 Z" fill="#2a78d6"/>
       <text x="271.5" y="487.5">0.0 pp（无变化）</text>
     </g>
-    <text x="30" y="516" font-size="10" fill="#8a897f">★ 统计显著（逐题配对 McNemar，p=0.023 / p=0.045）；其余为方向性差异。对照运行共 10+ 个（P5–P6）；红线仅表示"显著恶化"状态，非独立系列。</text>
+    <text x="30" y="522" font-size="10.5" fill="#8a897f">★ 统计显著（逐题配对 McNemar，p=0.023 / p=0.045）；其余为方向性差异。对照运行共 10+ 个（P5–P6）。</text>
+    <text x="30" y="538" font-size="10.5" fill="#8a897f">红条 = 显著恶化；蓝条 = 方向性差异（未达显著）。</text>
   </g>
 </svg>

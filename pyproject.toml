@@ -1,7 +1,7 @@
 [project]
 name = "rag-chinese-qa"
 version = "2.0.0"
-description = "以评测体系为主轴的中文 RAG 质量工程：构建→评测→可见→归因→迭代→安全"
+description = "中文 RAG 文档问答系统（评测主轴）：混合检索 + 重排序 + 行内引用 + 自研 Judge"
 readme = "README.md"
 requires-python = ">=3.11,<3.13"
 license = { text = "MIT" }

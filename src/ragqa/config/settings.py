@@ -54,9 +54,9 @@ class Settings(BaseSettings):
     gen_model_id: str = ""
     llm_model_id: str = "qwen-max"  # 旧变量，仅作回退
 
-    # ── 裁判（P4；独立于生成，建议与生成异族）───────────
+    # ── 裁判（评测运行用；P4 校准冻结，见 README「工程与复现」）──
     judge_api_key: str = ""
-    judge_base_url: str = ""          # OpenAI 兼容端点（如 TokenHub）
+    judge_base_url: str = ""          # OpenAI 兼容端点（v1.1 用 DeepSeek 官方）
     judge_model: str = ""             # 主裁判（P4 校准的尺子）
     judge_model_second: str = ""      # 第二裁判（20% 抽样交叉）
 

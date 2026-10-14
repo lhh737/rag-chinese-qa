@@ -17,9 +17,11 @@
 `{question}` `{answer}` `{context}` `{context_numbered}` `{n_contexts}` `{ground_truth}`
 `{key_claims}` `{expected_behavior}` `{injection_marker}`。
 
-**状态（2026-10-13）**：**v1 已冻结**——三段式校准通过（校准集 164 判定零分歧；测量段
-TPR/TNR 均 1.000，小样本声明与事件实录见 `eval_results/calibration/reports/P4_calibration_report.md`）。
-主裁判 `mimo-v2.6-flash`（异族）+ 第二裁判 `deepseek-v4-flash`（20% 交叉 22/22）。
+**状态（2026-10-13）**：**v1 已冻结，最终口径 v1.1**——校准集 164 判定零分歧、judge_error 0；
+测量段 TPR/TNR 全 1.000（小样本声明与事件实录见
+`eval_results/calibration/reports/P4_calibration_report.md`）。主裁判 `deepseek-flash`
+（DeepSeek 官方直连，与生成同族——单族预案与自偏好局限已声明）+ 第二裁判 `deepseek-v4-pro`
+（20% 抽样交叉）；异族锚点 `mimo-v2.6-flash` 全绿存档。
 **防漂移**：任何 prompt 或裁判模型变更 → 重跑测量段校准（缓存键含 prompt 内容哈希）。
 校准运行器：`scripts/calibrate_judge.py`。目录：
 
