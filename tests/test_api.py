@@ -45,7 +45,9 @@ class FakePipeline:
 def test_health_and_documents():
     client = TestClient(create_app(FakePipeline()))
     h = client.get("/health").json()
-    assert h["status"] == "ok" and h["index"]["n_docs"] == 106 and h["config_id"] == "test-config"
+    # n_docs 取自 get_file_list() 长度（本轮修复：原断言沿用了 meta 口径）
+    assert h["status"] == "ok" and h["index"]["n_docs"] == 1
+    assert h["index"]["n_chunks"] == 32501 and h["config_id"] == "test-config"
     d = client.get("/documents").json()
     assert d["files"][0]["doc_id"] == "a"
 
