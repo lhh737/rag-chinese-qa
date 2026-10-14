@@ -60,7 +60,7 @@
       <text x="513" y="304" font-size="9.5" fill="#52514e">人工抽检 20/20 一致</text>
     </g>
 
-    <text x="30" y="362" font-size="10.5" fill="#52514e">CLI / Gradio / FastAPI / 评测引擎共用同一入口；trace 记录配置指纹 config_id（如 vec24_bm2524_rrf60_rr12_k4-8_hyde0_rr1bm1）</text>
+    <text x="30" y="362" font-size="10.5" fill="#52514e">CLI / Web UI / FastAPI / 评测引擎共用同一入口；trace 记录配置指纹 config_id（如 vec24_bm2524_rrf60_rr12_k4-8_hyde0_rr1bm1）</text>
     <text x="30" y="382" font-size="10" fill="#8a897f">生成：deepseek-flash · 嵌入：qwen3.7-text-embedding-flash · 重排：qwen3.7-text-rerank · 裁判：deepseek-flash（v1.1 校准）+ deepseek-v4-pro（交叉）</text>
   </g>
 </svg>

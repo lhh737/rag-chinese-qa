@@ -98,8 +98,17 @@ class QueryResult:
 
 @dataclass
 class StreamChunk:
-    """astream 的流式块；最后一个块 done=True 并携带完整结果。"""
+    """astream 的流式块；最后一个块 done=True 并携带完整结果。
+
+    三段生命周期（Web UI 依赖此顺序）：
+    1. stage="retrieval"：检索完成即产出（携带 retrieval + hyde）——溯源面板先行渲染，不等生成；
+    2. 增量块：delta 逐段累积（done=False，stage=""）；
+    3. done=True：携带完整 QueryResult（含引用解析与 trace）。
+    """
 
     delta: str = ""
     done: bool = False
     result: QueryResult | None = None
+    stage: str = ""                                  # "" | "retrieval"
+    retrieval: RetrievalResult | None = None         # stage="retrieval" 时携带
+    hyde: HydeResult | None = None                   # stage="retrieval" 时携带

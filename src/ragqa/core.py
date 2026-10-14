@@ -134,6 +134,8 @@ class RAGPipeline:
 
         # HyDE 与检索是阻塞调用，放到线程池避免卡住事件循环
         retrieval, hyde = await asyncio.to_thread(self._retrieve, question, cfg)
+        # 检索完成即推送来源与漏斗（UI 溯源面板先行渲染，不等生成结束）
+        yield StreamChunk(stage="retrieval", retrieval=retrieval, hyde=hyde)
         if not retrieval.blocks:
             yield StreamChunk(done=True, result=self._empty_answer(question, cfg, "未找到相关文档内容。", t0))
             return

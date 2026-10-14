@@ -82,7 +82,8 @@ class GenerationSession:
             ...  # 展示用增量
         result = session.result  # 完整 GenerationResult（含引用解析）
 
-    注意：流式下部分供应商不返回 usage（usage 记空，成本口径以非流式为准）。
+    注意：流式带 stream_options.include_usage（DeepSeek 兼容端点末块回传 usage）；
+    供应商不支持时忽略该参数、usage 记空，成本口径以非流式为准。
     """
 
     def __init__(
@@ -103,17 +104,22 @@ class GenerationSession:
         self._client = client
         self.result: GenerationResult | None = None
         self._started = 0.0
+        self._usage: dict[str, int] = {}
 
     def _stream_kwargs(self) -> dict:
         messages = build_messages(self.question, self.context, self.prompt_version)
         kwargs = request_kwargs(self.cfg, messages)
         kwargs["stream"] = True
+        # DeepSeek/OpenAI 兼容：末块回传 usage（供应商忽略时行为不变，usage 记空）
+        kwargs["stream_options"] = {"include_usage": True}
         return kwargs
 
     async def _iter_deltas(self) -> AsyncIterator[str]:
         client = self._client or get_async_gen_client()
         stream = await client.chat.completions.create(**self._stream_kwargs())
         async for chunk in stream:
+            if getattr(chunk, "usage", None):  # 末块 usage（choices 为空）
+                self._usage = usage_dict(chunk)
             if not chunk.choices:
                 continue
             delta = chunk.choices[0].delta
@@ -138,6 +144,6 @@ class GenerationSession:
             citation_stats=stats,
             model=get_settings().gen_model,
             prompt_version=self.prompt_version,
-            usage={},  # 流式 usage 视供应商而定，暂记空
+            usage=self._usage,  # include_usage 回传时含真实 token；否则为空（成本口径以非流式为准）
             latency_ms=(time.time() - self._started) * 1000,
         )

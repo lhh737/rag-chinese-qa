@@ -279,6 +279,7 @@ class VectorStore:
         return self.parent_store.get(parent_id)
 
     def get_document_content(self, doc_id: str) -> str | None:
+        """文档原文（查看用）。PDF 走与入库同一套 loader + sanitize——返回的即索引内容本身。"""
         info = self.manifest.get(doc_id)
         if not info:
             return None
@@ -286,6 +287,12 @@ class VectorStore:
         if not path.is_file():
             return None
         try:
+            if path.suffix.lower() == ".pdf":
+                from ragqa.ingestion.loader import load_file
+                from ragqa.ingestion.sanitize import sanitize_text
+
+                pages = load_file(path)
+                return "\n\n".join(sanitize_text(p.page_content)[0] for p in pages)
             return path.read_text(encoding="utf-8")
-        except Exception:
+        except Exception:  # noqa: BLE001 —— 解析失败按不可读处理，UI 显示提示
             return None

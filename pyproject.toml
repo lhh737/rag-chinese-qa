@@ -18,12 +18,12 @@ dependencies = [
     "rank-bm25==0.2.2",
     "numpy>=2.0",
     "PyYAML>=6.0",
-    "pydantic>=2.10,<2.11",  # 上限：gradio 5.9.1 的 gradio-client 不兼容 pydantic>=2.11 的 JSON Schema 形式
+    "pydantic>=2.10,<2.11",  # 上限：与锁文件一致（原为 gradio 兼容约束，gradio 已移除，待评估放开）
     "pydantic-settings>=2.14",
     "requests>=2.31",
-    "gradio==5.9.1",
     "fastapi>=0.142.2",
     "uvicorn>=0.54.0",
+    "python-multipart>=0.0.20",  # FastAPI 文件上传（/documents/upload）
 ]
 
 [project.optional-dependencies]
@@ -31,7 +31,7 @@ dependencies = [
 local = ["sentence-transformers>=3.3.1"]
 
 [dependency-groups]
-dev = ["pytest>=8.0"]
+dev = ["pytest>=8.0", "httpx>=0.27"]  # httpx：FastAPI TestClient 依赖（原由 gradio 传递引入，显式声明）
 
 [project.scripts]
 ragqa = "ragqa.cli:main"

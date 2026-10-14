@@ -7,7 +7,7 @@
   <img src="https://img.shields.io/badge/python-3.12-blue?logo=python" alt="Python">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
   <img src="https://img.shields.io/badge/uv-managed-de5fe9" alt="uv">
-  <img src="https://img.shields.io/badge/tests-68%20passed-brightgreen" alt="tests">
+  <img src="https://img.shields.io/badge/tests-71%20passed-brightgreen" alt="tests">
   <img src="https://img.shields.io/badge/cost-%E2%89%A4%C2%A531%20total-informational" alt="cost">
 </p>
 <p align="center">
@@ -52,6 +52,22 @@
 
 ---
 
+## Web UI
+
+<p align="center">
+  <img src="assets/webui-qa.png" width="820" alt="Web UI: streamed answer with [n] citations + traceback panel (retrieval funnel / rerank scores / per-stage latency & cost)">
+</p>
+
+The UI shares the exact pipeline and trace with the evaluation system (same `RAGPipeline` facade):
+streamed answers carry `[n]` citations that jump to the right-hand source blocks; the trace panel shows
+the real retrieval funnel (vector/BM25 → RRF → rerank → dynamic TopK), rerank relevance scores and
+per-stage latency / cost estimate. Out-of-corpus questions are **refused**, not answered from general
+knowledge — the screenshot below shows both visibly low rerank scores (0.38/0.17/0.15/0.13) and the explicit refusal:
+
+<p align="center">
+  <img src="assets/webui-refusal.png" width="820" alt="Out-of-corpus question refused: rerank scores visibly low, answer declines explicitly">
+</p>
+
 ## Architecture
 
 <p align="center"><img src="assets/architecture.svg" width="760" alt="Architecture: retrieval pipeline and evaluation system"></p>
@@ -59,8 +75,8 @@
 - **Parent-child chunks**: children (400 chars) for retrieval, parents (1200) for context;
 - **Inline citations**: answer sentence ↔ `[n]` ↔ context block, parseable per sentence
   (with a code-level validity check on marker indices);
-- **Single facade**: CLI / Gradio / FastAPI / evaluation engine share one `RAGPipeline`;
-  fully LangChain-free (DR-001).
+- **Single facade**: CLI / Web UI / FastAPI / evaluation engine share one `RAGPipeline`;
+  fully LangChain-free (DR-001); the UI's traceback view is the same trace the evaluation reads.
 
 ## Evaluation system (the six-stage loop)
 
@@ -75,6 +91,19 @@
 | Iterate | Removal ablations / k-scan / prompt & config A-B tests decided by paired statistics; decision records `decisions/DR-00x` |
 | Secure | Injection (query/doc/cross-chunk) + harmful + boundary suites; rule + judge layers; before/after defense comparison |
 
+**Evaluation workbench** (`apps/review_viewer.html`, single-file, four modes: read-trace / blind-label /
+spot-check / candidate-review) — error analysis (P3), judge-calibration labeling (P4) and attribution
+spot-checks (P5) all happened on this workbench; every mode shares the same trace schema, and exports
+feed straight into downstream analysis:
+
+<p align="center">
+  <img src="assets/reviewer-trace.png" width="820" alt="Review viewer · read-trace mode: recall (vector/BM25 top-8 with scores) and fusion details, rerank scores, final context, generation & citations, cost ledger + per-item open coding">
+</p>
+
+<p align="center">
+  <img src="assets/reviewer-blind.png" width="820" alt="Review viewer · blind-label mode: judge verdicts hidden; binary per-criterion labeling against ground truth / key claims (with automatic citation-marker hints)">
+</p>
+
 ## Quickstart
 
 > Requires Python 3.12+, [uv](https://docs.astral.sh/uv/); API keys: DashScope (embeddings/rerank) + DeepSeek (generation/judge).
@@ -84,9 +113,12 @@ git clone https://github.com/lhh737/rag-chinese-qa.git && cd rag-chinese-qa
 uv sync && cp .env.example .env    # fill DASHSCOPE_API_KEY / GEN_API_KEY / JUDGE_*
 
 uv run ragqa ingest                # build index (105 papers + Chinese docs; idempotent, resumable)
-uv run python apps/gradio_ui.py    # chat UI at http://127.0.0.1:7860
-uv run ragqa serve                 # FastAPI: /health /documents /query (http://127.0.0.1:8000/docs)
+uv run ragqa serve                 # Web UI + FastAPI → open http://127.0.0.1:8000
 ```
+
+**Web UI** (`apps/web_ui.html`, single-file vanilla frontend, zero build — see "Web UI" above):
+switchable prompt versions and embedded knowledge-base management (upload / batch import / view raw text).
+API docs at `http://127.0.0.1:8000/docs`.
 
 **Evaluation & calibration**:
 
@@ -94,7 +126,7 @@ uv run ragqa serve                 # FastAPI: /health /documents /query (http://
 uv run python scripts/run_eval.py --suite quality --split dev --mode judged   # full judged evaluation
 uv run python scripts/calibrate_judge.py --segment tuning --labels <export>   # 3-segment judge calibration
 uv run python scripts/attribute_run.py --run-id <run_id>                      # auto-attribution + spot-check file
-uv run pytest -q                                                              # 68 offline tests
+uv run pytest -q                                                              # 71 offline tests
 ```
 
 ## Reproducibility & engineering discipline

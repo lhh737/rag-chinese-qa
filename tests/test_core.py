@@ -80,3 +80,7 @@ def test_astream_end_to_end(tmp_path, fake_embed, fake_reranker):
     assert result.answer == "答案：复杂度 O(n²) [1]。"
     assert result.citations and result.citations[0].valid
     assert "".join(c.delta for c in chunks if not c.done) == "答案：复杂度 O(n²) [1]。"
+    # 首个块为 retrieval 阶段事件（UI 溯源面板先行渲染协议）
+    assert chunks[0].stage == "retrieval"
+    assert chunks[0].retrieval is not None and chunks[0].retrieval.blocks[0].doc_id == "1706.03762"
+    assert sum(1 for c in chunks if c.stage == "retrieval") == 1

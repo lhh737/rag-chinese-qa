@@ -7,7 +7,7 @@
   <img src="https://img.shields.io/badge/python-3.12-blue?logo=python" alt="Python">
   <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
   <img src="https://img.shields.io/badge/uv-managed-de5fe9" alt="uv">
-  <img src="https://img.shields.io/badge/tests-68%20passed-brightgreen" alt="tests">
+  <img src="https://img.shields.io/badge/tests-71%20passed-brightgreen" alt="tests">
   <img src="https://img.shields.io/badge/cost-%E2%89%A4%C2%A531%20total-informational" alt="cost">
 </p>
 <p align="center">
@@ -46,13 +46,28 @@
 
 ---
 
+## 问答界面
+
+<p align="center">
+  <img src="assets/webui-qa.png" width="820" alt="Web UI：流式回答 + [n] 行内引用 + 右侧溯源面板（检索漏斗 / 重排分数 / 来源全文 / 逐级延迟与成本）">
+</p>
+
+界面与评测**同源**（同一 `RAGPipeline` 门面、同一条 trace）：流式回答附带 `[n]` 行内引用，
+点击即定位右侧来源块；溯源面板给出本次检索的真实漏斗（向量/BM25 → RRF → 重排 → 动态 TopK）、
+重排相关性分数与逐级延迟/成本估算。库外问题**明确拒答**而非使用库外知识——下图同时可见
+检索块重排分数明显偏低（0.38/0.17/0.15/0.13）与答案的拒答行为：
+
+<p align="center">
+  <img src="assets/webui-refusal.png" width="820" alt="库外问题（冠脉搭桥）拒答：检索块重排分数明显偏低，答案明确拒答">
+</p>
+
 ## 系统架构
 
 <p align="center"><img src="assets/architecture.svg" width="760" alt="系统架构：检索管线与评测体系"></p>
 
 - **父子块**：子块（400 字）检索、父块（1200 字）还原上下文；
 - **行内引用**：答案句 ↔ `[n]` ↔ 上下文块逐句可解析（含编号合法性代码校验）；
-- **统一门面**：CLI / Gradio / FastAPI / 评测引擎共用 `RAGPipeline`，离线零 LangChain（DR-001）。
+- **统一门面**：CLI / Web UI / FastAPI / 评测引擎共用 `RAGPipeline`，离线零 LangChain（DR-001）；界面回溯链路与评测同源（trace 是唯一事实来源）。
 
 ## 评测体系（六环闭环）
 
@@ -67,6 +82,18 @@
 | 迭代 | 移除式消融 / k 扫描 / prompt 与配置 A/B，配对检验裁定；决策记录 `decisions/DR-00x` |
 | 安全 | 注入三层（query/doc/跨块）+ 有害 + 越界；规则 + judge 双层，防御前后对照 |
 
+**评测工作台**（`apps/review_viewer.html`，单文件四模式：读 trace / 盲标 / 抽检 / 候审议）——
+错误分析（P3）、judge 校准盲标（P4）、归因复核（P5）都在这个工作台上完成，四种模式共用同一份
+trace schema，导出标注即进后续分析：
+
+<p align="center">
+  <img src="assets/reviewer-trace.png" width="820" alt="评审查看器 · 读 trace 模式：召回（向量/BM25 top-8 与分数）与融合明细、重排分数、最终上下文、生成与引用、成本总账 + 逐条开放编码">
+</p>
+
+<p align="center">
+  <img src="assets/reviewer-blind.png" width="820" alt="评审查看器 · 盲标模式：judge 结论隐藏，对照参考答案/判分要点与系统回答逐 criterion 二分判定（含引用标记自动解析提示）">
+</p>
+
 ## 快速开始
 
 > 前置：Python 3.12+、[uv](https://docs.astral.sh/uv/)；API Key：DashScope（向量/重排）+ DeepSeek（生成/裁判）。
@@ -76,9 +103,11 @@ git clone https://github.com/lhh737/rag-chinese-qa.git && cd rag-chinese-qa
 uv sync && cp .env.example .env    # 填入 DASHSCOPE_API_KEY / GEN_API_KEY / JUDGE_*
 
 uv run ragqa ingest                # 构建索引（105 篇论文 + 中文文档，幂等可续跑）
-uv run python apps/gradio_ui.py    # 问答界面 http://127.0.0.1:7860
-uv run ragqa serve                 # FastAPI：/health /documents /query（http://127.0.0.1:8000/docs）
+uv run ragqa serve                 # Web UI + FastAPI → 打开 http://127.0.0.1:8000
 ```
+
+**Web UI**（`apps/web_ui.html`，单文件原生前端，零构建，效果见上方「问答界面」）：
+Prompt 版本可切换、知识库管理（上传 / 批量导入 / 查看原文）内嵌；接口文档 `http://127.0.0.1:8000/docs`。
 
 **评测与校准**：
 
@@ -86,7 +115,7 @@ uv run ragqa serve                 # FastAPI：/health /documents /query（http:
 uv run python scripts/run_eval.py --suite quality --split dev --mode judged   # judged 全量评测
 uv run python scripts/calibrate_judge.py --segment tuning --labels <盲标导出>   # 三段式 judge 校准
 uv run python scripts/attribute_run.py --run-id <run_id>                      # 自动归因 + 抽检文件
-uv run pytest -q                                                              # 68 项测试（离线）
+uv run pytest -q                                                              # 71 项测试（离线）
 ```
 
 ## 复现性与工程纪律
@@ -101,6 +130,7 @@ uv run pytest -q                                                              # 
 
 ```
 src/ragqa/            核心包（core 门面 / retrieval / generation / evaluation / api）
+apps/                 Web UI（web_ui.html，单文件）+ 评审查看器（review_viewer.html）
 scripts/              运行与实验五件套：run_eval · calibrate_judge · attribute_run · judge_crosscheck · rejudge_errors
 eval_results/         全部运行产物 + 分析报告（analysis/ 下：基线与 P6 报告、消融面板、k 扫描、RAGAS 对照）
 decisions/            决策记录（DR-001 依赖迁移 / DR-002 事故 / DR-003 HyDE / DR-004 迭代裁定）
