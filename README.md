@@ -71,8 +71,13 @@
 
 <p align="center"><img src="assets/architecture.svg" width="760" alt="系统架构：检索管线与评测体系"></p>
 
-- 父子块：子块（400 字）检索、父块（1200 字）还原上下文；
-- 行内引用：答案句 ↔ `[n]` ↔ 上下文块逐句可解析（含编号合法性代码校验）；
+**上下文工程**——进入生成模型上下文窗口的内容、数量与约束由检索层显式控制，且每项取舍都有消融证据：
+
+- 父子块：子块（400 字）检索、父块（1200 字）还原上下文，切分粒度与还原策略可配置；
+- 上下文预算：动态 TopK（4–8）按重排分数分布决定放入几个父块；
+- 行内引用约束：答案句 ↔ `[n]` ↔ 上下文块逐句可解析，编号合法性由代码硬校验；
+- 拒答口径：库外问题由 prompt 约束 + 零命中回退共同判定，不静默编造；
+- 证据：重排是唯一显著贡献（移除后误拒 +13.5pp，p=0.023）；HyDE 净贡献≈0 故关闭，省 45% 成本（DR-003）；Prompt v2 被驳回（劣化 p=0.045）。
 - 统一门面：CLI / Web UI / FastAPI / 评测引擎共用 `RAGPipeline`，离线零 LangChain（DR-001）。
 
 ## 快速开始
@@ -98,9 +103,11 @@ uv run python scripts/attribute_run.py --run-id <run_id>                      # 
 uv run pytest -q                                                              # 71 项测试（离线）
 ```
 
-## 工程与复现
+## 可观测性与可复现性
 
-- **Run Registry**（`eval_results/registry.jsonl`）：每次运行的类型 / 配置 / 版本 / 指标 / 成本；trace 含配置指纹 `config_id`（如 `vec24_bm2524_rrf60_rr12_k4-8_hyde0_rr1bm1`）。
+- **全链路 trace**（`src/ragqa/trace.py`，Trace Schema v1）：每次查询落一条 JSONL，覆盖 HyDE / 向量 / BM25 / RRF / 重排 / 上下文 / 生成 / 用量各阶段，含逐级延迟与逐级成本；评测、错误分析、归因与 Web UI 溯源面板共用同一份 schema。
+- **运行档案**（`eval_results/registry.jsonl`）：每次运行的类型 / 配置 / 版本 / 指标 / 成本；trace 含配置指纹 `config_id`（如 `vec24_bm2524_rrf60_rr12_k4-8_hyde0_rr1bm1`）。
+- **服务侧**：`/health` 暴露索引元信息（文档数 / 维度 / 嵌入模型 / 管线版本）与配置指纹。
 - **防漂移**：judge prompt 或模型变更 → 重跑测量段校准（缓存键含 prompt 内容哈希）；评测集与 judge 版本冻结并记录 hash（`data/golden/CHANGELOG.md`）。
 - **成本**：全项目 P0–P6 累计 ≈ ¥31（含 10 个 judged 全量运行 + 校准 + 验收）。
 

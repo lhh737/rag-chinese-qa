@@ -71,8 +71,13 @@ Evaluation workbench (`apps/review_viewer.html`): single file, four modes sharin
 
 <p align="center"><img src="assets/architecture.svg" width="760" alt="Architecture: retrieval pipeline and evaluation system"></p>
 
-- Parent-child chunks: children (400 chars) for retrieval, parents (1200 chars) restore context;
-- Inline citations: answer sentence ↔ `[n]` ↔ context block, parseable per sentence (with a code-level validity check on marker indices);
+**Context engineering** — what enters the generator's context window, how much of it, and under what constraints is decided explicitly by the retrieval layer, and every trade-off carries ablation evidence:
+
+- Parent-child chunks: children (400 chars) for retrieval, parents (1200 chars) restore context; split granularity and restoration are configurable;
+- Context budget: dynamic TopK (4–8) decides how many parents enter the window, driven by the rerank score distribution;
+- Inline citation constraint: answer sentence ↔ `[n]` ↔ context block, parseable per sentence, with a code-level validity check on marker indices;
+- Refusal policy: out-of-corpus questions are decided by prompt constraints plus a zero-hit fallback — never silently fabricated;
+- Evidence: reranking is the only significant contributor (+13.5pp false refusals when removed, p=0.023); HyDE contributes ≈0 so it is off, saving 45% cost (DR-003); Prompt v2 was rejected (degraded, p=0.045).
 - Single facade: CLI / Web UI / FastAPI / evaluation engine share one `RAGPipeline`; fully LangChain-free (DR-001).
 
 ## Quickstart
@@ -98,9 +103,11 @@ uv run python scripts/attribute_run.py --run-id <run_id>                      # 
 uv run pytest -q                                                              # 71 offline tests
 ```
 
-## Engineering & reproducibility
+## Observability & reproducibility
 
+- **End-to-end trace** (`src/ragqa/trace.py`, Trace Schema v1): one JSONL record per query covering HyDE / vector / BM25 / RRF / rerank / context / generation / usage, with per-stage latency and per-stage cost; evaluation, error analysis, attribution and the Web UI trace panel all read the same schema.
 - **Run Registry** (`eval_results/registry.jsonl`): type / config / version / metrics / cost per run; traces carry a full config fingerprint (`config_id`, e.g. `vec24_bm2524_rrf60_rr12_k4-8_hyde0_rr1bm1`).
+- **Serving side**: `/health` exposes index metadata (documents / dim / embedding model / pipeline version) and the config fingerprint.
 - **Drift protection**: judge prompt or model change → re-run measurement-segment calibration (cache keys include a prompt content hash); datasets and judge versions frozen with recorded hashes (`data/golden/CHANGELOG.md`).
 - **Cost**: full project (P0–P6) ≈ ¥31 total (10 full judged runs + calibration + acceptance).
 
