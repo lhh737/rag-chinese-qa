@@ -118,7 +118,7 @@ Evaluation & calibration:
 uv run python scripts/run_eval.py --suite quality --split dev --mode judged   # full judged evaluation
 uv run python scripts/calibrate_judge.py --segment tuning --labels <export>   # 3-segment judge calibration
 uv run python scripts/attribute_run.py --run-id <run_id>                      # auto-attribution + spot-check file
-uv run pytest -q                                                              # 79 offline tests
+uv run pytest -q                                                              # 90 offline tests
 ```
 
 ## Observability & reproducibility
@@ -135,7 +135,7 @@ uv run pytest -q                                                              # 
 src/ragqa/            core package (core facade / retrieval / generation / evaluation / api / tools layer / mcp_server / agentic single-turn tool selection)
 apps/                 Web UI (web_ui.html) + review viewer (review_viewer.html), both single-file
 scripts/              evaluation & experiment scripts: run_eval · calibrate_judge · attribute_run · judge_crosscheck · rejudge_errors, etc.
-eval_results/         all run artifacts + analysis reports (analysis/: baseline & P6 reports, ablation panel, k-scan, RAGAS comparison)
+eval_results/         all run artifacts + analysis reports (analysis/: baseline & P6/P9 reports, ablation panel, k-scan, RAGAS comparison)
 decisions/            decision records (DR-001 dependency migration / DR-002 incident / DR-003 HyDE / DR-004 iteration rulings / DR-005 MCP dependency)
 docs/                 eval plan · annotation guideline · label reference · P5 plan
 data/golden/          frozen datasets (golden_v1.1 / safety_v1 + CHANGELOG + health report)

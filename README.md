@@ -118,7 +118,7 @@ uv run ragqa mcp --transport http --port 8000   # Streamable HTTP → http://127
 uv run python scripts/run_eval.py --suite quality --split dev --mode judged   # judged 全量评测
 uv run python scripts/calibrate_judge.py --segment tuning --labels <盲标导出>   # 三段式 judge 校准
 uv run python scripts/attribute_run.py --run-id <run_id>                      # 自动归因 + 抽检文件
-uv run pytest -q                                                              # 79 项测试（离线）
+uv run pytest -q                                                              # 90 项测试（离线）
 ```
 
 ## 可观测性与可复现性
@@ -135,7 +135,7 @@ uv run pytest -q                                                              # 
 src/ragqa/            核心包（core 门面 / retrieval / generation / evaluation / api / tools 工具层 / mcp_server / agentic 单轮工具选择变体）
 apps/                 Web UI（web_ui.html）+ 评审查看器（review_viewer.html），均单文件
 scripts/              评测与实验脚本：run_eval · calibrate_judge · attribute_run · judge_crosscheck · rejudge_errors 等
-eval_results/         全部运行产物 + 分析报告（analysis/ 下：基线与 P6 报告、消融面板、k 扫描、RAGAS 对照）
+eval_results/         全部运行产物 + 分析报告（analysis/ 下：基线与 P6/P9 报告、消融面板、k 扫描、RAGAS 对照）
 decisions/            决策记录（DR-001 依赖迁移 / DR-002 事故 / DR-003 HyDE / DR-004 迭代裁定 / DR-005 MCP 依赖）
 docs/                 评测方案 · 判定规范 · 标签表 · P5 计划书
 data/golden/          冻结评测集（golden_v1.1 / safety_v1 + CHANGELOG + 健康度报告）

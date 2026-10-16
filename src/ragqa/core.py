@@ -1,4 +1,4 @@
-"""统一查询门面（设计 §5.3）：评测引擎 / FastAPI / Gradio / 评审查看器共用同一入口。
+"""统一查询门面（设计 §5.3）：评测引擎 / CLI / FastAPI（Web UI）/ MCP server 共用同一入口。
 
     pipeline = RAGPipeline()
     result = pipeline.query("问题")

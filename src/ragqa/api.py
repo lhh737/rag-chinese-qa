@@ -1,4 +1,4 @@
-"""FastAPI 服务层（P7）：与 CLI / Web UI / 评测引擎共用同一入口（core.RAGPipeline）。
+"""FastAPI 服务层（P7）：与 CLI / Web UI / MCP server / 评测引擎共用同一入口（core.RAGPipeline）。
 
 运行：`uv run ragqa serve [--host H --port P]` → 打开 http://127.0.0.1:8000 （Web UI）
 
