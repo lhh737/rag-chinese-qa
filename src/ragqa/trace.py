@@ -67,6 +67,16 @@ def _gen_cost(model: str, usage: dict, pricing: PricingConfig, peak: bool) -> fl
     return ((prompt - cache_hit) * in_rate + cache_hit * hit_rate + completion * out_rate) / 1_000_000
 
 
+def estimate_gen_cost(model: str, usage: dict | None) -> float:
+    """单次生成调用的成本估算（元），与 `build_trace` 内部口径一致。
+
+    供 `totals` 覆盖不到的额外生成调用复用（如工具选择轮），避免成本被低估。
+    """
+    if not usage:
+        return 0.0
+    return _gen_cost(model, usage, load_pricing_config(), is_peak_time())
+
+
 def _tokens_cost(model: str, tokens: int, table: dict[str, dict[str, float]]) -> float:
     p = table.get(model) or table.get("_default") or {}
     return tokens * p.get("input", 0.0) / 1_000_000

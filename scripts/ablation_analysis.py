@@ -44,6 +44,8 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--baseline", required=True)
     ap.add_argument("--run", action="append", required=True, help="标签=RUN_ID，可多次")
+    ap.add_argument("--out", default="eval_results/analysis/p5_ablation_panel.md",
+                    help="面板输出路径（相对仓库根）；换别的对比时改名，避免覆盖历史面板")
     args = ap.parse_args()
 
     base = load_run(args.baseline)
@@ -115,9 +117,8 @@ def main() -> int:
             L.append(f"**multi_hop 专项（n={len(mh)}）**：ac 通过 {base_ac}→{ab_ac}；误拒 {base_fr}→{ab_fr}\n")
         L.append("")
 
-    out_dir = REPO_ROOT / "eval_results" / "analysis"
-    out_dir.mkdir(parents=True, exist_ok=True)
-    out_path = out_dir / "p5_ablation_panel.md"
+    out_path = REPO_ROOT / args.out
+    out_path.parent.mkdir(parents=True, exist_ok=True)
     out_path.write_text("\n".join(L), encoding="utf-8")
     print("\n".join(L))
     print(f"\n面板已写出：{out_path}")

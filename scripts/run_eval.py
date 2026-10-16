@@ -43,6 +43,8 @@ def main() -> int:
     parser.add_argument("--base-context-k", type=int, default=None, help="最终上下文基数（迭代实验）")
     parser.add_argument("--max-context-k", type=int, default=None, help="最终上下文上限（迭代实验）")
     parser.add_argument("--gen-prompt", default=None, help="生成 prompt 版本（如 v2；缺省按 config）")
+    parser.add_argument("--pipeline", default="fixed", choices=["fixed", "agentic"],
+                        help="fixed=现有固定管线；agentic=单轮工具选择变体（P9-D，需配 --run-type agentic）")
     parser.add_argument("--max-cost", type=float, default=5.0)
     parser.add_argument("--concurrency", type=int, default=3)
     parser.add_argument("--run-type", default="baseline")
@@ -79,6 +81,10 @@ def main() -> int:
         from ragqa.config.loader import load_generation_config
         gcfg = load_generation_config().model_copy(update={"prompt_version": args.gen_prompt})
     pipeline = RAGPipeline(store=store, retrieval_config=rcfg, generation_config=gcfg)
+    if args.pipeline == "agentic":
+        from ragqa.agentic import ToolCallingPipeline
+
+        pipeline = ToolCallingPipeline(pipeline)
     cfg = RunConfig(
         dataset_path=REPO_ROOT / dataset,
         suite=args.suite,

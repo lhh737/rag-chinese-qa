@@ -33,6 +33,7 @@ Around it, a full evaluation-centric loop — Build → Evaluate → Observe →
 
 - **Judge calibration**: 164 human blind labels → zero disagreement with the calibrated judge; second-judge cross-check 34/34; cross-family anchor on holdout 10/10 ([P4 calibration report](eval_results/calibration/reports/P4_calibration_report.md)).
 - **Removal-based ablations** (paired McNemar): reranking is the only significant contributor (+13.5pp false refusals when removed, p=0.023); HyDE contributes ≈0 while costing 45% extra (disabled by default, DR-003); RRF k-scan is a documented negative result; ±3–5pp run-to-run noise floor on retrieval metrics.
+- **Agentic retrieval control** (single-turn tool selection / multi-query merge, P9): the mechanism works as designed — the model issues 2.7 rewritten searches on average and the merged context spans sources — but it yields **no significant improvement on any quality criterion**: Recall@5 +1.7pp (inside the noise floor), **MRR −13.1pp (ranking degraded)**, false refusals +5.8pp, multi-hop false refusals 8→10; **the target gap stays open → not adopted** ([P9 report](eval_results/analysis/p9_report.md)).
 - **Attribution**: 19 failures mapped to 5 taxonomy classes by a rule engine (evidence-backed), human spot-check agreement 20/20; the biggest gap — multi-hop second-source recall — is on record, unresolved.
 - **Tool validation**: RAGAS agreement with humans 50–65%, with three reproduced Chinese failure modes → not admitted to the main pipeline; DeepEval reduced to pytest assertions.
 
@@ -105,9 +106,11 @@ uv run ragqa mcp --transport http --port 8000   # Streamable HTTP → http://127
 Tools: `search_documents` / `get_document_content` / `list_documents` / `answer` — thin wrappers over the same `RAGPipeline`, identical to CLI / Web UI / evaluation engine. Client registration (stdio):
 
 ```json
-{"mcpServers": {"rag-chinese-qa": {"command": "uv",
-  "args": ["--directory", "<repo-path>", "run", "ragqa", "mcp"]}}}
+{"mcpServers": {"rag-chinese-qa": {"type": "stdio", "command": "uv",
+  "args": ["run", "--directory", "<repo-path>", "ragqa", "mcp"]}}}
 ```
+
+Or register directly: `claude mcp add --scope project ragqa -- uv run --directory <repo-path> ragqa mcp`
 
 Evaluation & calibration:
 
@@ -129,7 +132,7 @@ uv run pytest -q                                                              # 
 ## Repository map
 
 ```
-src/ragqa/            core package (core facade / retrieval / generation / evaluation / api / tools layer / mcp_server)
+src/ragqa/            core package (core facade / retrieval / generation / evaluation / api / tools layer / mcp_server / agentic single-turn tool selection)
 apps/                 Web UI (web_ui.html) + review viewer (review_viewer.html), both single-file
 scripts/              evaluation & experiment scripts: run_eval · calibrate_judge · attribute_run · judge_crosscheck · rejudge_errors, etc.
 eval_results/         all run artifacts + analysis reports (analysis/: baseline & P6 reports, ablation panel, k-scan, RAGAS comparison)
@@ -143,11 +146,11 @@ data/golden/          frozen datasets (golden_v1.1 / safety_v1 + CHANGELOG + hea
 - Single annotator: next-day relabel agreement 26/30; attribution spot-check 20/20 — small samples, wide intervals;
 - Judge: primary judge shares the DeepSeek family with the generator (single-family fallback, self-preference limitation declared); cross-family anchor is sample-based only;
 - Noise floor: ±3–5pp run-to-run variation on retrieval metrics; smaller deltas are not interpreted;
-- Open gap: multi-hop "second source never retrieved" (candidate-pool level) — all four cheap levers (k / TopK / HyDE / prompt) were proven ineffective; needs chunking / embedding / multi-query retrieval work;
+- Open gap: multi-hop "second source never retrieved" (candidate-pool level) — all four cheap levers (k / TopK / HyDE / prompt) were proven ineffective, and **multi-query retrieval (single-turn tool selection, P9) failed too**; the remaining directions narrow to chunking strategy / embedding model;
 - Safety judge is lightly calibrated (15 human cross-checks); an `s005`-type "abandons task due to injection" soft failure is on record.
 
 ## Future work
 
-Multi-hop retrieval-layer redesign (second query / source-aware chunking) with paired re-validation; constrained-HyDE variant comparison; expanded safety-judge calibration; productionizing `ragqa serve` (auth / rate limiting).
+Multi-hop gap redesign (chunking strategy / embedding model — multi-query retrieval was falsified in P9) with paired re-validation; constrained-HyDE variant comparison; expanded safety-judge calibration; productionizing `ragqa serve` (auth / rate limiting).
 
 <p align="center"><sub>MIT License · Methodology inspired by Hamel Husain's "Your AI Product Needs Evals" et al.</sub></p>

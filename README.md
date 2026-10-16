@@ -33,6 +33,7 @@
 
 - **Judge 校准**：164 条人工盲标 → 与校准后 judge 零分歧；第二裁判交叉 34/34；验收集异族锚点 10/10（[P4 校准报告](eval_results/calibration/reports/P4_calibration_report.md)）。
 - **移除式消融**（配对 McNemar）：重排是唯一显著贡献（去掉后误拒 +13.5pp，p=0.023）；HyDE 净贡献≈0，省 45% 成本（默认关闭，DR-003）；RRF k 扫描为负结果；检索指标 run 间噪声地板 ±3–5pp。
+- **Agentic 检索对照**（单轮工具选择 / 多查询合并，P9）：机制按设计生效——模型均发 2.7 次改写检索、合并后上下文跨来源；但对最终质量**无一项显著改善**：Recall@5 +1.7pp 落在噪声地板内、**MRR −13.1pp（排序退化）**、误拒 +5.8pp、多跳误拒 8→10，**目标缺口未闭合 → 不采纳**（[P9 报告](eval_results/analysis/p9_report.md)）。
 - **归因**：19 条失败归入 5 类（规则引擎可查证据），人工抽检一致率 20/20；最大缺口（多跳第二来源召回）已留档、未闭合。
 - **工具对照**：RAGAS 与人工一致率 50–65%，三项中文失效模式实证 → 不进主链路；DeepEval 退回 pytest 断言层。
 
@@ -105,9 +106,11 @@ uv run ragqa mcp --transport http --port 8000   # Streamable HTTP → http://127
 工具：`search_documents` / `get_document_content` / `list_documents` / `answer`——薄封装同一 `RAGPipeline`，与 CLI / Web UI / 评测引擎同源。客户端注册（stdio）：
 
 ```json
-{"mcpServers": {"rag-chinese-qa": {"command": "uv",
-  "args": ["--directory", "<仓库路径>", "run", "ragqa", "mcp"]}}}
+{"mcpServers": {"rag-chinese-qa": {"type": "stdio", "command": "uv",
+  "args": ["run", "--directory", "<仓库路径>", "ragqa", "mcp"]}}}
 ```
+
+或直接注册：`claude mcp add --scope project ragqa -- uv run --directory <仓库路径> ragqa mcp`
 
 评测与校准：
 
@@ -129,7 +132,7 @@ uv run pytest -q                                                              # 
 ## 目录速览
 
 ```
-src/ragqa/            核心包（core 门面 / retrieval / generation / evaluation / api / tools 工具层 / mcp_server）
+src/ragqa/            核心包（core 门面 / retrieval / generation / evaluation / api / tools 工具层 / mcp_server / agentic 单轮工具选择变体）
 apps/                 Web UI（web_ui.html）+ 评审查看器（review_viewer.html），均单文件
 scripts/              评测与实验脚本：run_eval · calibrate_judge · attribute_run · judge_crosscheck · rejudge_errors 等
 eval_results/         全部运行产物 + 分析报告（analysis/ 下：基线与 P6 报告、消融面板、k 扫描、RAGAS 对照）
@@ -143,11 +146,11 @@ data/golden/          冻结评测集（golden_v1.1 / safety_v1 + CHANGELOG + �
 - 单标注人：隔日复标一致率 26/30；归因抽检 20/20——样本量小，区间宽；
 - 裁判：主裁判与生成同族（DeepSeek，单族预案，自偏好局限已声明）；异族锚点仅抽样；
 - 噪声地板：检索层指标 run 间波动 ±3–5pp，小于此的差值不作结论；
-- 开缺口：多跳题第二来源「从未召回」（候选池层问题）——k / TopK / HyDE / prompt 四类廉价手段均已实证无效，需切分 / embedding / 多查询检索层工作；
+- 开缺口：多跳题第二来源「从未召回」（候选池层问题）——k / TopK / HyDE / prompt 四类廉价手段已实证无效，**多查询检索（单轮工具选择，P9）亦无效**；剩余方向收敛为切分策略 / embedding 模型；
 - 安全 judge 为轻校准（15 条人工对照）；`s005` 类「因注入放弃任务」软失败已记录。
 
 ## 后续方向
 
-多跳检索层改造（第二查询 / 来源感知切分）→ 配对复验；HyDE 约束化版本对照；安全 judge 扩样校准；`ragqa serve` 生产化（鉴权 / 限流）。
+多跳缺口改造（切分策略 / embedding 模型——多查询检索已在 P9 证伪）→ 配对复验；HyDE 约束化版本对照；安全 judge 扩样校准；`ragqa serve` 生产化（鉴权 / 限流）。
 
 <p align="center"><sub>MIT License · 评测方法论参考：Hamel Husain《Your AI Product Needs Evals》等</sub></p>
