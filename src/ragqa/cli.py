@@ -205,6 +205,13 @@ def cmd_serve(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_mcp(args: argparse.Namespace) -> int:
+    """启动 MCP server（stdio 默认 / Streamable HTTP）。需要 optional extra `mcp`。"""
+    from ragqa.mcp_server import main as mcp_main
+
+    return mcp_main(transport=args.transport, host=args.host, port=args.port)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="ragqa", description="RAG 中文问答 · 评测主线 CLI")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -235,6 +242,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_serve.add_argument("--host", default="127.0.0.1")
     p_serve.add_argument("--port", type=int, default=8000)
     p_serve.set_defaults(func=cmd_serve)
+
+    p_mcp = sub.add_parser("mcp", help="启动 MCP server（stdio 默认 · --transport http → Streamable HTTP /mcp）")
+    p_mcp.add_argument("--transport", choices=["stdio", "http"], default="stdio")
+    p_mcp.add_argument("--host", default="127.0.0.1")
+    p_mcp.add_argument("--port", type=int, default=8000)
+    p_mcp.set_defaults(func=cmd_mcp)
 
     return parser
 

@@ -14,7 +14,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install dependencies
-        run: uv sync --frozen
+        run: uv sync --frozen --extra mcp   # 含 optional extra，否则 MCP 测试会被 importorskip 静默跳过
       - name: Tests (offline, no network / no index needed)
         env:
           PYTHONUTF8: "1"

@@ -78,7 +78,7 @@ Evaluation workbench (`apps/review_viewer.html`): single file, four modes sharin
 - Inline citation constraint: answer sentence ↔ `[n]` ↔ context block, parseable per sentence, with a code-level validity check on marker indices;
 - Refusal policy: out-of-corpus questions are decided by prompt constraints plus a zero-hit fallback — never silently fabricated;
 - Evidence: reranking is the only significant contributor (+13.5pp false refusals when removed, p=0.023); HyDE contributes ≈0 so it is off, saving 45% cost (DR-003); Prompt v2 was rejected (degraded, p=0.045).
-- Single facade: CLI / Web UI / FastAPI / evaluation engine share one `RAGPipeline`; fully LangChain-free (DR-001).
+- Single facade: CLI / Web UI / FastAPI / MCP server / evaluation engine share one `RAGPipeline`; fully LangChain-free (DR-001), and the MCP tools are thin wrappers with no separate retrieval logic.
 
 ## Quickstart
 
@@ -94,13 +94,28 @@ uv run ragqa serve                 # Web UI + FastAPI → http://127.0.0.1:8000
 
 The Web UI (`apps/web_ui.html`, single-file vanilla frontend, zero build) supports prompt-version switching and knowledge-base management (upload / batch import / view raw text); API docs at `http://127.0.0.1:8000/docs`.
 
+MCP server (`ragqa mcp`): exposes retrieval / raw-text / QA as standard MCP tools for any MCP client. Built on MCP spec **2026-07-28** with Python SDK v2 (`MCPServer`); requires the optional extra:
+
+```bash
+uv sync --extra mcp
+uv run ragqa mcp                                # stdio (launched by the client; stdout carries protocol messages only)
+uv run ragqa mcp --transport http --port 8000   # Streamable HTTP → http://127.0.0.1:8000/mcp
+```
+
+Tools: `search_documents` / `get_document_content` / `list_documents` / `answer` — thin wrappers over the same `RAGPipeline`, identical to CLI / Web UI / evaluation engine. Client registration (stdio):
+
+```json
+{"mcpServers": {"rag-chinese-qa": {"command": "uv",
+  "args": ["--directory", "<repo-path>", "run", "ragqa", "mcp"]}}}
+```
+
 Evaluation & calibration:
 
 ```bash
 uv run python scripts/run_eval.py --suite quality --split dev --mode judged   # full judged evaluation
 uv run python scripts/calibrate_judge.py --segment tuning --labels <export>   # 3-segment judge calibration
 uv run python scripts/attribute_run.py --run-id <run_id>                      # auto-attribution + spot-check file
-uv run pytest -q                                                              # 71 offline tests
+uv run pytest -q                                                              # 79 offline tests
 ```
 
 ## Observability & reproducibility
@@ -114,11 +129,11 @@ uv run pytest -q                                                              # 
 ## Repository map
 
 ```
-src/ragqa/            core package (core facade / retrieval / generation / evaluation / api)
+src/ragqa/            core package (core facade / retrieval / generation / evaluation / api / tools layer / mcp_server)
 apps/                 Web UI (web_ui.html) + review viewer (review_viewer.html), both single-file
 scripts/              evaluation & experiment scripts: run_eval · calibrate_judge · attribute_run · judge_crosscheck · rejudge_errors, etc.
 eval_results/         all run artifacts + analysis reports (analysis/: baseline & P6 reports, ablation panel, k-scan, RAGAS comparison)
-decisions/            decision records (DR-001 dependency migration / DR-002 incident / DR-003 HyDE / DR-004 iteration rulings)
+decisions/            decision records (DR-001 dependency migration / DR-002 incident / DR-003 HyDE / DR-004 iteration rulings / DR-005 MCP dependency)
 docs/                 eval plan · annotation guideline · label reference · P5 plan
 data/golden/          frozen datasets (golden_v1.1 / safety_v1 + CHANGELOG + health report)
 ```

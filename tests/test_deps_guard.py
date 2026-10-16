@@ -29,3 +29,17 @@ def test_no_langchain_modules_loaded():
         importlib.import_module(mod)
     loaded = [m for m in sys.modules if "langchain" in m]
     assert loaded == [], f"launched langchain modules: {loaded}"
+
+
+def test_core_chain_does_not_load_mcp():
+    """mcp 是 optional extra：核心链路（含 CLI / tools）不得拉入它（P9 依赖纪律）。
+
+    只比较导入前后的差集——若同进程内其他测试已加载 mcp，本测试退化为"无新增"，不会误报。
+    """
+    def _mcp_modules() -> set[str]:
+        return {m for m in sys.modules if m == "mcp" or m.startswith("mcp.")}
+
+    before = _mcp_modules()
+    for mod in ["ragqa.core", "ragqa.cli", "ragqa.api", "ragqa.tools"]:
+        importlib.import_module(mod)
+    assert _mcp_modules() == before, f"核心链路拉入了 mcp: {_mcp_modules() - before}"

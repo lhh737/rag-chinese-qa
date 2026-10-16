@@ -78,7 +78,7 @@
 - 行内引用约束：答案句 ↔ `[n]` ↔ 上下文块逐句可解析，编号合法性由代码硬校验；
 - 拒答口径：库外问题由 prompt 约束 + 零命中回退共同判定，不静默编造；
 - 证据：重排是唯一显著贡献（移除后误拒 +13.5pp，p=0.023）；HyDE 净贡献≈0 故关闭，省 45% 成本（DR-003）；Prompt v2 被驳回（劣化 p=0.045）。
-- 统一门面：CLI / Web UI / FastAPI / 评测引擎共用 `RAGPipeline`，离线零 LangChain（DR-001）。
+- 统一门面：CLI / Web UI / FastAPI / MCP server / 评测引擎共用 `RAGPipeline`，离线零 LangChain（DR-001）；MCP 工具为薄封装，不另写检索逻辑。
 
 ## 快速开始
 
@@ -94,13 +94,28 @@ uv run ragqa serve                 # Web UI + FastAPI → http://127.0.0.1:8000
 
 Web UI（`apps/web_ui.html`，单文件原生前端、零构建）支持 prompt 版本切换与知识库管理（上传 / 批量导入 / 查看原文）；接口文档见 `http://127.0.0.1:8000/docs`。
 
+MCP server（`ragqa mcp`）：把检索 / 取全文 / 问答暴露为标准 MCP 工具，供任意 MCP 客户端调用。按 MCP 规范 **2026-07-28** / Python SDK v2（`MCPServer`）实现，需 optional extra：
+
+```bash
+uv sync --extra mcp
+uv run ragqa mcp                                # stdio（由客户端拉起；stdout 仅走协议消息）
+uv run ragqa mcp --transport http --port 8000   # Streamable HTTP → http://127.0.0.1:8000/mcp
+```
+
+工具：`search_documents` / `get_document_content` / `list_documents` / `answer`——薄封装同一 `RAGPipeline`，与 CLI / Web UI / 评测引擎同源。客户端注册（stdio）：
+
+```json
+{"mcpServers": {"rag-chinese-qa": {"command": "uv",
+  "args": ["--directory", "<仓库路径>", "run", "ragqa", "mcp"]}}}
+```
+
 评测与校准：
 
 ```bash
 uv run python scripts/run_eval.py --suite quality --split dev --mode judged   # judged 全量评测
 uv run python scripts/calibrate_judge.py --segment tuning --labels <盲标导出>   # 三段式 judge 校准
 uv run python scripts/attribute_run.py --run-id <run_id>                      # 自动归因 + 抽检文件
-uv run pytest -q                                                              # 71 项测试（离线）
+uv run pytest -q                                                              # 79 项测试（离线）
 ```
 
 ## 可观测性与可复现性
@@ -114,11 +129,11 @@ uv run pytest -q                                                              # 
 ## 目录速览
 
 ```
-src/ragqa/            核心包（core 门面 / retrieval / generation / evaluation / api）
+src/ragqa/            核心包（core 门面 / retrieval / generation / evaluation / api / tools 工具层 / mcp_server）
 apps/                 Web UI（web_ui.html）+ 评审查看器（review_viewer.html），均单文件
 scripts/              评测与实验脚本：run_eval · calibrate_judge · attribute_run · judge_crosscheck · rejudge_errors 等
 eval_results/         全部运行产物 + 分析报告（analysis/ 下：基线与 P6 报告、消融面板、k 扫描、RAGAS 对照）
-decisions/            决策记录（DR-001 依赖迁移 / DR-002 事故 / DR-003 HyDE / DR-004 迭代裁定）
+decisions/            决策记录（DR-001 依赖迁移 / DR-002 事故 / DR-003 HyDE / DR-004 迭代裁定 / DR-005 MCP 依赖）
 docs/                 评测方案 · 判定规范 · 标签表 · P5 计划书
 data/golden/          冻结评测集（golden_v1.1 / safety_v1 + CHANGELOG + 健康度报告）
 ```
