@@ -19,9 +19,7 @@ A RAG QA system over 106 Chinese papers/documents (32,501 chunks): FAISS + BM25 
 
 The main work is the evaluation layer: 80 quality + 20 safety questions, a judge calibrated on 164 human blind labels, paired ablations, failure attribution, a second-domain transfer run, and a trace/registry record for every query.
 
-The parts worth reading: eval-set and judge calibration, paired ablations and rejected changes, second-domain transfer, and annotation / QC / cost.
-
-| | |
+| Item | Value |
 |---|---|
 | Corpus | 106 docs / 32,501 chunks; 30 docs in the second domain |
 | Eval sets | 80 quality + 20 safety; 30 in the second domain |
@@ -30,19 +28,15 @@ The parts worth reading: eval-set and judge calibration, paired ablations and re
 | Models | qwen3.7-text-embedding / rerank; deepseek-flash for generation and judging |
 | Cost | P0–P6 ≈ ¥31; second-domain run ¥0.20 |
 
-> Personal project, not a production service; the focus is a reproducible evaluation record.
-
 ## Demo
 
-<p align="center">
-  <img src="assets/webui-qa.png" width="48%" alt="QA UI">
-  <img src="assets/webui-refusal.png" width="48%" alt="Out-of-scope refusal">
-</p>
-<p align="center"><sub>Left: inline [n] citations and retrieval trace. Right: an out-of-scope question is refused.</sub></p>
+<p align="center"><img src="assets/webui-qa.png" width="820" alt="QA UI"></p>
+<p align="center"><sub>Inline [n] citations; the right panel shows the retrieval funnel, rerank scores, and source text.</sub></p>
+
+<p align="center"><img src="assets/webui-refusal.png" width="820" alt="Out-of-scope refusal"></p>
+<p align="center"><sub>An out-of-scope question is refused; the retrieved blocks have low rerank scores.</sub></p>
 
 ## Results
-
-<p align="center"><img src="assets/results.svg" width="760" alt="R1 baseline to holdout acceptance"></p>
 
 | Metric | Paper dev 60 (R1) | Paper dev 60 (final) | Paper holdout 20 | E-commerce FAQ 30 |
 |---|---:|---:|---:|---:|
@@ -53,6 +47,16 @@ The parts worth reading: eval-set and judge calibration, paired ablations and re
 | Out-of-scope refusal | 100% | 100% | 100% | 100% |
 
 R1 = HyDE on; final = R1 + HyDE off. *The second domain has only 30 documents, so its R@5 is not directly comparable to the 106-document paper corpus. It is shown to keep the same metric set.
+
+### Domain comparison
+
+<p align="center"><img src="assets/domain-quality.svg" width="820" alt="Domain comparison: Recall@5 and answer correctness"></p>
+<p align="center"><sub>Recall@5 and answer correctness are shown separately; R@5 depends on corpus size and is not directly comparable across domains.</sub></p>
+
+### False refusal
+
+<p align="center"><img src="assets/false-refusal.svg" width="820" alt="False refusal with 95% Wilson CI"></p>
+<p align="center"><sub>Lower is better; the intervals are wide, so the 30–60-question estimates are not precise.</sub></p>
 
 ### What did not survive testing
 
@@ -67,8 +71,6 @@ R1 = HyDE on; final = R1 + HyDE off. *The second domain has only 30 documents, s
 
 ## Evaluation design
 
-<p align="center"><img src="assets/eval-loop.svg" width="760" alt="Evaluation workflow"></p>
-
 | Stage | Output |
 |---|---|
 | Build | 80 + 20 questions; 5-type quota; dev 60 / holdout 20; hash + CHANGELOG |
@@ -78,7 +80,7 @@ R1 = HyDE on; final = R1 + HyDE off. *The second domain has only 30 documents, s
 | Iterate | Paired ablations, McNemar, decision records |
 | Safety | Three injection layers + harmful + boundary; pre/post defense comparison |
 
-<p align="center"><img src="assets/reviewer-trace.png" width="760" alt="Review viewer: trace mode"></p>
+<p align="center"><img src="assets/reviewer-trace.png" width="820" alt="Review viewer: trace mode"></p>
 <p align="center"><sub>Trace view: retrieval and fusion details, rerank scores, final context, generation and citations, cost breakdown.</sub></p>
 
 ## Second domain
@@ -89,9 +91,7 @@ R1 = HyDE on; final = R1 + HyDE off. *The second domain has only 30 documents, s
 | Questions | dev 60 + holdout 20 | 30 (all dev, mini eval) |
 | Main failure mode | Retrieval 8/19 | Date arithmetic, order reference, policy branching, safe-but-unhelpful 8/26 |
 
-With the same final config and judge, the second domain scores R@5 0.825, false refusal 23.1%, answer correctness 0.692, faithfulness/citation 0.923, and 100% out-of-scope refusal. The failure surface moves from “not retrieved” to “generation-side reasoning”, which is direct evidence that the question quota has to be redesigned per domain.
-
-Details: [`docs/transferability.md`](docs/transferability.md).
+With the same final config and judge, the second domain scores R@5 0.825, false refusal 23.1%, answer correctness 0.692, faithfulness/citation 0.923, and 100% out-of-scope refusal. The failure surface moves from “not retrieved” to “generation-side reasoning”, which is direct evidence that the question quota has to be redesigned per domain. Details: [`docs/transferability.md`](docs/transferability.md).
 
 ## Judge calibration and consistency
 
@@ -107,22 +107,18 @@ The AI second annotator shares the model family with the judge/generator. Its re
 
 ## Architecture
 
-<p align="center"><img src="assets/architecture.svg" width="760" alt="System architecture"></p>
+| Layer | Tech | Role |
+|---|---|---|
+| Interface | CLI / Web UI / FastAPI / MCP | Share one `RAGPipeline`; no LangChain (DR-001) |
+| Retrieval | FAISS + BM25 → RRF → rerank | Two recall paths, fusion, and reranking |
+| Context | parent-child 400 / 1,200 chars + dynamic TopK 4–8 | Control what enters the generation window |
+| Generation | deepseek-flash | Answer with inline `[n]` citations |
+| Observability | trace + Run Registry | Per-stage latency / cost / config fingerprint |
+| Evaluation | judge + McNemar / Wilson | Paired ablations, intervals, decision records |
 
-- Retrieval: FAISS + BM25 → RRF → reranking; parent-child chunks (400-char child retrieval, 1,200-char parent context).
-- Context: dynamic TopK 4–8; hard validation of `[n]` citations; refusal via prompt constraints + zero-hit fallback.
-- One facade: CLI / Web UI / FastAPI / MCP / evaluation share `RAGPipeline`; no LangChain (DR-001).
-- Observability: one trace per query with per-stage latency and cost; every run records its config fingerprint.
-
-### Stack
-
-| Layer | Tech |
-|---|---|
-| Retrieval | FAISS, BM25, RRF, qwen3.7-text-rerank |
-| Generation | DeepSeek deepseek-flash |
-| Serving | FastAPI (SSE), single-file Web UI, MCP 2026-07-28 |
-| Evaluation | Custom judge, McNemar / Wilson, JSONL traces, Run Registry |
-| Operations | SQLite QC dashboard, annotation SOP, badcase regression |
+- `[n]` citation validity is checked in code; refusal uses prompt constraints plus a zero-hit fallback.
+- One trace per query; each run records code commit, dataset hash, config fingerprint, and cost.
+- CLI / Web UI / FastAPI / MCP / evaluation share the same pipeline facade.
 
 ## Operations & cost
 
@@ -160,7 +156,7 @@ src/ragqa/            core package: retrieval / generation / evaluation / servin
 apps/                 Web UI + review viewer (single-file)
 config/               retrieval / generation / pricing config
 prompts/              answer / judge / annotator prompts
-scripts/              evaluation, calibration, attribution, QC, badcase, second-domain scripts
+scripts/              evaluation, calibration, attribution, QC, badcase, second-domain, chart scripts
 eval_results/         run artifacts + analysis/ reports + regression/ tags
 data/golden/          frozen datasets (golden_v1.1 / safety_v1)
 data/business/        second-domain 30 questions + health + judge spot-check
@@ -189,6 +185,7 @@ decisions/            DR-001 to DR-005
 - Retrieval metrics have ±3–5pp run-to-run noise; smaller differences are not interpreted.
 - The second domain is a 30-question mini eval (all dev, mock data). b020/b021 lack an as-of date in the question; excluding them gives ac 18/24 = 0.750 and false refusal 4/24 = 16.7%.
 - The multi-hop “second source never retrieved” gap is open. k / TopK / HyDE / prompt / multi-query did not close it; the remaining directions are chunking and embedding.
+- Personal project, not a production service; all numbers are local evaluation results.
 
 ## Roadmap
 
@@ -197,4 +194,6 @@ decisions/            DR-001 to DR-005
 - Productionize `ragqa serve` (auth / rate limiting).
 - Second-domain v1.1: add the missing as-of dates and re-run; re-run AI second annotation with the v1.1 prompt.
 
-<p align="center"><sub>MIT License</sub></p>
+## License
+
+MIT. Methodology reference: Hamel Husain, *Your AI Product Needs Evals*.

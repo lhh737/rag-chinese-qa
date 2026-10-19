@@ -19,9 +19,7 @@
 
 主要工作在评测层：80 道质量题 + 20 道安全题、164 条人工盲标校准的 judge、配对消融、失败归因、第二域迁移，以及覆盖每次查询的 trace 和 Run Registry。
 
-值得参考的部分：评测集与 judge 校准、配对消融与负结果、第二域迁移、标注 / QC / 成本。
-
-| | |
+| 项目 | 内容 |
 |---|---|
 | 语料 | 106 篇 / 32,501 子块；第二域 30 篇 |
 | 评测集 | 质量 80 + 安全 20；第二域 30 |
@@ -30,19 +28,15 @@
 | 模型 | qwen3.7-text-embedding / rerank；deepseek-flash 生成与裁判 |
 | 成本 | P0–P6 ≈¥31；第二域 run ¥0.20 |
 
-> 个人项目，不是生产服务；重点是可复现的评测记录。
-
 ## 演示
 
-<p align="center">
-  <img src="assets/webui-qa.png" width="48%" alt="问答界面">
-  <img src="assets/webui-refusal.png" width="48%" alt="库外问题拒答">
-</p>
-<p align="center"><sub>左：回答带 [n] 行内引用与检索溯源；右：库外问题明确拒答</sub></p>
+<p align="center"><img src="assets/webui-qa.png" width="820" alt="问答界面"></p>
+<p align="center"><sub>回答带 [n] 行内引用；右侧是检索漏斗、重排分数与来源全文</sub></p>
+
+<p align="center"><img src="assets/webui-refusal.png" width="820" alt="库外问题拒答"></p>
+<p align="center"><sub>库外问题明确拒答；检索块重排分数明显偏低</sub></p>
 
 ## 结果
-
-<p align="center"><img src="assets/results.svg" width="760" alt="R1 基线 → holdout 验收"></p>
 
 | 指标 | 论文 dev 60（R1） | 论文 dev 60（最终） | 论文 holdout 20 | 电商 FAQ 30 |
 |---|---:|---:|---:|---:|
@@ -53,6 +47,16 @@
 | 库外拒答 | 100% | 100% | 100% | 100% |
 
 R1 = HyDE on；最终 = R1 + HyDE off。*第二域只有 30 篇语料，R@5 不能与 106 篇论文域直接比较，保留它只为展示同一套指标。
+
+### 域对比
+
+<p align="center"><img src="assets/domain-quality.svg" width="820" alt="域对比：Recall@5 与答案正确性"></p>
+<p align="center"><sub>R@5 与答案正确性分开看；R@5 受语料规模影响，不能跨域直接比</sub></p>
+
+### 误拒率
+
+<p align="center"><img src="assets/false-refusal.svg" width="820" alt="误拒率与 95% Wilson 区间"></p>
+<p align="center"><sub>误拒率越低越好；区间很宽，说明 30–60 题的估计精度有限</sub></p>
 
 ### 被驳回的改动
 
@@ -67,8 +71,6 @@ R1 = HyDE on；最终 = R1 + HyDE off。*第二域只有 30 篇语料，R@5 不�
 
 ## 评测设计
 
-<p align="center"><img src="assets/eval-loop.svg" width="760" alt="评测流程"></p>
-
 | 环节 | 产物 |
 |---|---|
 | 构建 | 80 + 20 题；5 类配额；dev 60 / holdout 20；hash + CHANGELOG |
@@ -78,7 +80,7 @@ R1 = HyDE on；最终 = R1 + HyDE off。*第二域只有 30 篇语料，R@5 不�
 | 迭代 | 配对消融、McNemar、决策记录 |
 | 安全 | 注入三层 + 有害 + 越界；防御前后对照 |
 
-<p align="center"><img src="assets/reviewer-trace.png" width="760" alt="评审查看器：读 trace"></p>
+<p align="center"><img src="assets/reviewer-trace.png" width="820" alt="评审查看器：读 trace"></p>
 <p align="center"><sub>读 trace：召回与融合明细、重排分数、最终上下文、生成与引用、成本总账</sub></p>
 
 ## 第二域
@@ -89,9 +91,7 @@ R1 = HyDE on；最终 = R1 + HyDE off。*第二域只有 30 篇语料，R@5 不�
 | 题数 | dev 60 + holdout 20 | 30（全 dev，mini eval） |
 | 失败主因 | 检索 8/19 | 日期算术、订单指代、政策分支、安全但无用 8/26 |
 
-同一套最终配置和 judge 在第二域上：R@5 0.825、误拒 23.1%、答案正确性 0.692、忠实/引用 0.923、库外拒答 100%。失败面从“检索不到”转到“生成侧推理”，说明题型配额需要按域重设。
-
-详见 [`docs/transferability.md`](docs/transferability.md)。
+同一套最终配置和 judge 在第二域上：R@5 0.825、误拒 23.1%、答案正确性 0.692、忠实/引用 0.923、库外拒答 100%。失败面从“检索不到”转到“生成侧推理”，说明题型配额需要按域重设。详见 [`docs/transferability.md`](docs/transferability.md)。
 
 ## Judge 校准与一致性
 
@@ -107,22 +107,18 @@ AI 第二标注与 judge/生成同族，报告的是 AI–human 一致性，不�
 
 ## 系统架构
 
-<p align="center"><img src="assets/architecture.svg" width="760" alt="系统架构"></p>
+| 层 | 技术 | 作用 |
+|---|---|---|
+| 接口 | CLI / Web UI / FastAPI / MCP | 共用 `RAGPipeline`，离线零 LangChain（DR-001） |
+| 检索 | FAISS + BM25 → RRF → rerank | 双路召回、融合、精排 |
+| 上下文 | 父子块（400 / 1200 字）+ 动态 TopK 4–8 | 控制进入生成窗口的内容与数量 |
+| 生成 | deepseek-flash | 答案 + `[n]` 行内引用 |
+| 观测 | trace + Run Registry | 逐阶段延迟 / 成本 / 配置指纹 |
+| 评测 | judge + McNemar / Wilson | 配对消融、区间估计、决策记录 |
 
-- 检索：FAISS + BM25 → RRF → 重排；父子块（子块 400 字检索 / 父块 1200 字还原）。
-- 上下文：动态 TopK 4–8；`[n]` 编号硬校验；拒答由 prompt + 零命中回退共同判定。
-- 门面：CLI / Web UI / FastAPI / MCP / 评测共用 `RAGPipeline`；离线零 LangChain（DR-001）。
-- 可观测：每次查询一条 trace，含各阶段延迟与成本；run 记录配置指纹。
-
-### 技术栈
-
-| 层 | 技术 |
-|---|---|
-| 检索 | FAISS、BM25、RRF、qwen3.7-text-rerank |
-| 生成 | DeepSeek deepseek-flash |
-| 服务 | FastAPI（SSE）、单文件 Web UI、MCP 2026-07-28 |
-| 评测 | 自建 judge、McNemar / Wilson、JSONL trace、Run Registry |
-| 运营 | SQLite QC 看板、标注 SOP、badcase 回归 |
+- `[n]` 编号合法性由代码硬校验；拒答由 prompt 约束 + 零命中回退共同判定。
+- 每次查询落一条 trace；每次运行记录代码 commit、数据 hash、配置指纹与成本。
+- CLI / Web UI / FastAPI / MCP / 评测引擎共用同一个管道门面。
 
 ## 运营与成本
 
@@ -160,7 +156,7 @@ src/ragqa/            核心包：检索 / 生成 / 评测 / 服务 / MCP / 工�
 apps/                 Web UI + 评审查看器（单文件）
 config/               检索 / 生成 / 计价配置
 prompts/              answer / judge / annotator prompts
-scripts/              评测、校准、归因、QC、回流、第二域脚本
+scripts/              评测、校准、归因、QC、回流、第二域、图表脚本
 eval_results/         运行产物 + analysis/ 报告 + regression/ 回归标签
 data/golden/          冻结评测集（golden_v1.1 / safety_v1）
 data/business/        第二域 30 题 + 健康度 + judge 抽检
@@ -189,6 +185,7 @@ decisions/            DR-001 ~ DR-005
 - 检索指标 run 间噪声 ±3–5pp；小于此的差值不作结论。
 - 第二域是 30 题 mini eval（全 dev、mock 数据）；b020/b021 题干缺 as-of 日期，剔除后 ac 18/24=0.750、误拒 4/24=16.7%。
 - 多跳第二来源“从未召回”仍未解决；k / TopK / HyDE / prompt / 多查询均无效；剩余方向是切分策略 / embedding。
+- 个人项目，不是生产服务；以上数字均为本地评测。
 
 ## 路线图
 
@@ -197,4 +194,6 @@ decisions/            DR-001 ~ DR-005
 - `ragqa serve` 生产化（鉴权 / 限流）。
 - 第二域 v1.1：补 as-of 日期后重跑；AI 第二标注用 v1.1 prompt 复跑。
 
-<p align="center"><sub>MIT License</sub></p>
+## License
+
+MIT. 评测方法参考 Hamel Husain《Your AI Product Needs Evals》。

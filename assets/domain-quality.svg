@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="860" height="400" viewBox="0 0 860 400" role="img" aria-labelledby="dq-title dq-desc">
+<title id="dq-title">Domain comparison: retrieval and answer quality</title>
+<desc id="dq-desc">Grouped bars of Recall@5 and judge-scored answer correctness across four evaluation sets. Recall@5 is not directly comparable across corpora.</desc>
+<rect width="860" height="400" fill="#fcfcfb"/>
+<text x="64.0" y="32.0" font-size="16" fill="#0b0b0b" text-anchor="start" font-weight="600" font-family='system-ui, -apple-system, "Segoe UI", sans-serif' font-variant-numeric="tabular-nums">Domain comparison: retrieval and answer quality</text>
+<text x="64.0" y="52.0" font-size="11" fill="#52514e" text-anchor="start" font-weight="400" font-family='system-ui, -apple-system, "Segoe UI", sans-serif' font-variant-numeric="tabular-nums">Recall@5 and judge-scored answer correctness. R@5 is not directly comparable across corpora (106 vs 30 documents).</text>
+<rect x="636" y="22" width="10" height="10" rx="0" fill="#2a78d6"/>
+<text x="652.0" y="31.0" font-size="11" fill="#52514e" text-anchor="start" font-weight="400" font-family='system-ui, -apple-system, "Segoe UI", sans-serif' font-variant-numeric="tabular-nums">Recall@5</text>
+<rect x="726" y="22" width="10" height="10" rx="0" fill="#eb6834"/>
+<text x="742.0" y="31.0" font-size="11" fill="#52514e" text-anchor="start" font-weight="400" font-family='system-ui, -apple-system, "Segoe UI", sans-serif' font-variant-numeric="tabular-nums">Answer correctness</text>
+<line x1="64" y1="336.0" x2="836" y2="336.0" stroke="#e1e0d9" stroke-width="1"/>
+<text x="54.0" y="340.0" font-size="11" fill="#898781" text-anchor="end" font-weight="400" font-family='system-ui, -apple-system, "Segoe UI", sans-serif' font-variant-numeric="tabular-nums">0.00</text>
+<line x1="64" y1="273.0" x2="836" y2="273.0" stroke="#e1e0d9" stroke-width="1"/>
+<text x="54.0" y="277.0" font-size="11" fill="#898781" text-anchor="end" font-weight="400" font-family='system-ui, -apple-system, "Segoe UI", sans-serif' font-variant-numeric="tabular-nums">0.25</text>
+<line x1="64" y1="210.0" x2="836" y2="210.0" stroke="#e1e0d9" stroke-width="1"/>
+<text x="54.0" y="214.0" font-size="11" fill="#898781" text-anchor="end" font-weight="400" font-family='system-ui, -apple-system, "Segoe UI", sans-serif' font-variant-numeric="tabular-nums">0.50</text>
+<line x1="64" y1="147.0" x2="836" y2="147.0" stroke="#e1e0d9" stroke-width="1"/>
+<text x="54.0" y="151.0" font-size="11" fill="#898781" text-anchor="end" font-weight="400" font-family='system-ui, -apple-system, "Segoe UI", sans-serif' font-variant-numeric="tabular-nums">0.75</text>
+<line x1="64" y1="84.0" x2="836" y2="84.0" stroke="#e1e0d9" stroke-width="1"/>
+<text x="54.0" y="88.0" font-size="11" fill="#898781" text-anchor="end" font-weight="400" font-family='system-ui, -apple-system, "Segoe UI", sans-serif' font-variant-numeric="tabular-nums">1.00</text>
+<line x1="64" y1="336" x2="836" y2="336" stroke="#c3c2b7" stroke-width="1"/>
+<path d="M 135.5,336.0 L 135.5,159.3 Q 135.5,155.3 139.5,155.3 L 155.5,155.3 Q 159.5,155.3 159.5,159.3 L 159.5,336.0 Z" fill="#2a78d6"><title>Paper R1 dev 60 — Recall@5: 0.717</title></path>
+<path d="M 161.5,336.0 L 161.5,165.6 Q 161.5,161.6 165.5,161.6 L 181.5,161.6 Q 185.5,161.6 185.5,165.6 L 185.5,336.0 Z" fill="#eb6834"><title>Paper R1 dev 60 — Answer correctness: 0.692</title></path>
+<text x="160.5" y="356.0" font-size="11" fill="#52514e" text-anchor="middle" font-weight="400" font-family='system-ui, -apple-system, "Segoe UI", sans-serif' font-variant-numeric="tabular-nums">Paper R1</text>
+<text x="160.5" y="371.0" font-size="10" fill="#898781" text-anchor="middle" font-weight="400" font-family='system-ui, -apple-system, "Segoe UI", sans-serif' font-variant-numeric="tabular-nums">dev 60</text>
+<path d="M 328.5,336.0 L 328.5,149.0 Q 328.5,145.0 332.5,145.0 L 348.5,145.0 Q 352.5,145.0 352.5,149.0 L 352.5,336.0 Z" fill="#2a78d6"><title>Paper final dev 60 — Recall@5: 0.758</title></path>
+<path d="M 354.5,336.0 L 354.5,157.3 Q 354.5,153.3 358.5,153.3 L 374.5,153.3 Q 378.5,153.3 378.5,157.3 L 378.5,336.0 Z" fill="#eb6834"><title>Paper final dev 60 — Answer correctness: 0.725</title></path>
+<text x="353.5" y="356.0" font-size="11" fill="#52514e" text-anchor="middle" font-weight="400" font-family='system-ui, -apple-system, "Segoe UI", sans-serif' font-variant-numeric="tabular-nums">Paper final</text>
+<text x="353.5" y="371.0" font-size="10" fill="#898781" text-anchor="middle" font-weight="400" font-family='system-ui, -apple-system, "Segoe UI", sans-serif' font-variant-numeric="tabular-nums">dev 60</text>
+<path d="M 521.5,336.0 L 521.5,138.4 Q 521.5,134.4 525.5,134.4 L 541.5,134.4 Q 545.5,134.4 545.5,138.4 L 545.5,336.0 Z" fill="#2a78d6"><title>Paper holdout 20 — Recall@5: 0.800</title></path>
+<path d="M 547.5,336.0 L 547.5,171.9 Q 547.5,167.9 551.5,167.9 L 567.5,167.9 Q 571.5,167.9 571.5,171.9 L 571.5,336.0 Z" fill="#eb6834"><title>Paper holdout 20 — Answer correctness: 0.667</title></path>
+<text x="546.5" y="356.0" font-size="11" fill="#52514e" text-anchor="middle" font-weight="400" font-family='system-ui, -apple-system, "Segoe UI", sans-serif' font-variant-numeric="tabular-nums">Paper holdout</text>
+<text x="546.5" y="371.0" font-size="10" fill="#898781" text-anchor="middle" font-weight="400" font-family='system-ui, -apple-system, "Segoe UI", sans-serif' font-variant-numeric="tabular-nums">20</text>
+<path d="M 714.5,336.0 L 714.5,132.1 Q 714.5,128.1 718.5,128.1 L 734.5,128.1 Q 738.5,128.1 738.5,132.1 L 738.5,336.0 Z" fill="#2a78d6"><title>E-commerce FAQ 30 — Recall@5: 0.825</title></path>
+<path d="M 740.5,336.0 L 740.5,165.6 Q 740.5,161.6 744.5,161.6 L 760.5,161.6 Q 764.5,161.6 764.5,165.6 L 764.5,336.0 Z" fill="#eb6834"><title>E-commerce FAQ 30 — Answer correctness: 0.692</title></path>
+<text x="726.5" y="121.1" font-size="10" fill="#0b0b0b" text-anchor="middle" font-weight="400" font-family='system-ui, -apple-system, "Segoe UI", sans-serif' font-variant-numeric="tabular-nums">0.825</text>
+<text x="752.5" y="154.6" font-size="10" fill="#0b0b0b" text-anchor="middle" font-weight="400" font-family='system-ui, -apple-system, "Segoe UI", sans-serif' font-variant-numeric="tabular-nums">0.692</text>
+<text x="739.5" y="356.0" font-size="11" fill="#52514e" text-anchor="middle" font-weight="400" font-family='system-ui, -apple-system, "Segoe UI", sans-serif' font-variant-numeric="tabular-nums">E-commerce FAQ</text>
+<text x="739.5" y="371.0" font-size="10" fill="#898781" text-anchor="middle" font-weight="400" font-family='system-ui, -apple-system, "Segoe UI", sans-serif' font-variant-numeric="tabular-nums">30</text>
+<text x="64.0" y="382.0" font-size="10" fill="#898781" text-anchor="start" font-weight="400" font-family='system-ui, -apple-system, "Segoe UI", sans-serif' font-variant-numeric="tabular-nums">Paper R1 = HyDE on; paper final = R1 + HyDE off. E-commerce FAQ uses the final config.</text>
+</svg>
