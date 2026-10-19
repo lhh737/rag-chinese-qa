@@ -1,6 +1,6 @@
 """ragqa CLI（console script：`uv run ragqa <子命令>`）。
 
-  ragqa ingest [路径...] [--no-sanitize] [--limit N]   # 数据管道导入（幂等，可断点续跑）
+  ragqa ingest [路径...] [--store DIR] [--no-sanitize] [--limit N]   # 数据管道导入（幂等，可断点续跑）
   ragqa documents                                      # 已索引文档清单
   ragqa query "问题" [--prompt-version vN] [--trace-out FILE] [--json]
   ragqa smoke [--n-docs 20] [--out DIR]                # 冒烟：小索引 + 固定查询 + 小评测（Recall@5）
@@ -36,7 +36,8 @@ def cmd_ingest(args: argparse.Namespace) -> int:
     from ragqa.ingestion.pipeline import ingest_paths, verify_store
     from ragqa.retrieval.store import VectorStore
 
-    store = VectorStore()
+    # 新域/对照实验用独立索引目录，避免污染默认 faiss_db
+    store = VectorStore(persist_dir=args.store) if args.store else VectorStore()
     paths = args.paths or DEFAULT_INGEST_PATHS
     t0 = time.time()
     results = ingest_paths(paths, store=store, sanitize=not args.no_sanitize, limit=args.limit)
@@ -218,6 +219,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     p_ingest = sub.add_parser("ingest", help="数据管道导入（幂等）")
     p_ingest.add_argument("paths", nargs="*", help="文件或目录（默认：data/papers + 2 个中文文档）")
+    p_ingest.add_argument("--store", default=None,
+                          help="索引目录（默认 faiss_db；新域用 faiss_db_business）")
     p_ingest.add_argument("--no-sanitize", action="store_true", help="关闭文档清洗（对照实验用）")
     p_ingest.add_argument("--limit", type=int, default=0, help="最多导入 N 个文件（0=不限）")
     p_ingest.set_defaults(func=cmd_ingest)

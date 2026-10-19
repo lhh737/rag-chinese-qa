@@ -1,0 +1,19 @@
+{
+ "version": "business_v1",
+ "generated": "2026-10-19",
+ "n": 30,
+ "by_type": {
+  "factual": 12,
+  "multi_hop": 6,
+  "colloquial": 4,
+  "out_of_scope": 4,
+  "adversarial": 4
+ },
+ "by_split": {
+  "dev": 30
+ },
+ "hash": "f1ae94bc770a784c10d19bf99f8b476ea999a8afc91eb688c56e675a108f822a",
+ "domain": "ecommerce_customer_service",
+ "source": "ecom-cs-agent (mock orders/logistics + policies)",
+ "note": "mini eval；30 题全部 dev，无 holdout；不作强统计结论。"
+}

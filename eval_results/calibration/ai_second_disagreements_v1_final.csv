@@ -1,0 +1,8 @@
+﻿id,criterion,human,ai,ai_reason,human_reason,adjudication,note
+q001,faithfulness,pass,fail,整体拒答的“资料不足”仅豁免可核验陈述，但此处为误拒，且答案未包含任何可核验内容，无法支撑参考答案。,完整文档无 SuCI 依据，拒答忠实,ai_over_strict,P4规则：整体拒答的“资料不足”整体豁免faithfulness；误拒归ac，人工pass正确
+q004,citation_accuracy,pass,fail,引用[4]指向的上下文块并非直接支撑该句的文献，属跨块张冠李戴。,,ai_over_strict,上下文[4]逐字包含Lewis 2020 RAG文献，足以支撑该句；AI读漏参考文献列表
+q006,answer_correctness,pass,fail,答案缺少“K 趋近 M 时效用饱和、附录 A 有描述”这一 key_claim。,,unclear,缺的是补充性解释（K→M饱和/附录A）；guideline v1未写“补充性要点不计缺失”
+q009,answer_correctness,pass,fail,答案未体现“鼓励公开代码和数据、[No]可接受”这一 key_claim，缺少至少一条关键主张。,,unclear,缺的是背景政策（鼓励公开/[No]可接受），非问题核心条件
+q020,answer_correctness,pass,fail,答案缺少 key_claims 中关于 Popular 类格式共享扁平、分隔符驱动线性化特征以及 Data 类格式具有显式结构边界的两条陈述。,,unclear,缺的是格式特征解释；核心“平均哪些格式”已答全
+q046,answer_correctness,pass,fail,参考答案缺少 key_claim：BYOL-A 权重来自 AudioSet 和 FSD50K 自监督预训练，未全部体现。,,unclear,缺的是BYOL-A预训练数据细节；核心“怎么挑事件/用什么模型”已答全
+q046,faithfulness,pass,fail,答案称“移除语音事件”，但原文移除的是非语音事件，与上下文矛盾。,,human_missed,答案写“移除语音事件”，原文为“非语音事件”，明确矛盾

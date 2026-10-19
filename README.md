@@ -129,16 +129,31 @@ uv run pytest -q                                                              # 
 - **防漂移**：judge prompt 或模型变更 → 重跑测量段校准（缓存键含 prompt 内容哈希）；评测集与 judge 版本冻结并记录 hash（`data/golden/CHANGELOG.md`）。
 - **成本**：全项目 P0–P6 累计 ≈ ¥31（含 10 个 judged 全量运行 + 校准 + 验收）。
 
+## 运营与成本
+
+- **标注/QC SOP**：`docs/ops-playbook.md`——7 维二分、分层抽检、返修升级、AI 第二标注协议、badcase 回流。
+- **成本–质量–延迟**：`docs/cost-quality.md`——只比较同集合 dev 60：HyDE off 质量不变、成本 −44%、p50 −45%；移除重排省 84% 但误拒 +13.5pp（p=0.023）。
+- **QC 看板**：`eval_results/analysis/qc_dashboard.md`（SQL：`qc_dashboard.sql`；复现：`uv run python scripts/qc_metrics.py`，SQLite 零新增依赖）。
+- **badcase 回流**：`scripts/promote_badcase.py` 默认只写 `eval_results/regression/`，不改 golden；新题需人工审校 + CHANGELOG。
+
+## 第二域与 AI 第二标注
+
+- **第二域 mini eval（电商客服 FAQ）**：同一最终配置 / 同一 judge 跑 30 题（公开数据集 ecom-cs-agent，mock 订单/物流 + 政策）。R@5 0.825、误拒 23.1%、ac 0.692；失败面从论文域的检索（8/19）转为**日期算术、订单指代、政策分支、安全但无用**（8/26）。报告：[`docs/transferability.md`](docs/transferability.md)。
+- **AI 第二标注（同族，如实标注）**：50 题 / 134 条判定，AI–human 一致率 **0.948**、κ **0.836**；7 条分歧经人工裁决为 **2 条 AI 过严、4 条规范缺口、1 条人工漏判**——AI 可做预筛，不能替代人工抽检；已给 annotator prompt 补 P4 边界规则（v1.1）。明确写“同族一致性检查，不是人类 inter-annotator κ”。报告：[`P4b_ai_second_annotation.md`](eval_results/calibration/reports/P4b_ai_second_annotation.md)。
+- **judge 迁移抽检（已完成）**：20 题 / 56 条人工判定；judge–human 一致率 **0.946**、κ **0.825**、TPR **1.000**、TNR **0.936**；3 条分歧（1 条 judge 很可能正确、1 条题目缺 as-of 日期、1 条 guideline 边界）。报告：[`judge_spotcheck_v1_report.md`](data/business/judge_spotcheck_v1_report.md)。
+
 ## 目录速览
 
 ```
 src/ragqa/            核心包（core 门面 / retrieval / generation / evaluation / api / tools 工具层 / mcp_server / agentic 单轮工具选择变体）
 apps/                 Web UI（web_ui.html）+ 评审查看器（review_viewer.html），均单文件
-scripts/              评测与实验脚本：run_eval · calibrate_judge · attribute_run · judge_crosscheck · rejudge_errors 等
-eval_results/         全部运行产物 + 分析报告（analysis/ 下：基线与 P6/P9 报告、消融面板、k 扫描、RAGAS 对照）
+scripts/              评测与实验脚本：run_eval · calibrate_judge · attribute_run · judge_crosscheck · rejudge_errors · qc_metrics · promote_badcase · build_business_* · ai_second_annotate
+eval_results/         全部运行产物 + 分析报告（analysis/ 下：基线与 P6/P9 报告、消融面板、k 扫描、RAGAS 对照、QC 看板；regression/ 为 badcase 回归标签）
 decisions/            决策记录（DR-001 依赖迁移 / DR-002 事故 / DR-003 HyDE / DR-004 迭代裁定 / DR-005 MCP 依赖）
-docs/                 评测方案 · 判定规范 · 标签表 · P5 计划书
+docs/                 评测方案 · 判定规范 · 标签表 · P5 计划书 · 运营 playbook · 成本–质量 · 迁移性报告
 data/golden/          冻结评测集（golden_v1.1 / safety_v1 + CHANGELOG + 健康度报告）
+data/business/        第二域 mini eval（30 题 + 健康度 + judge 抽检材料）
+data/business_faq/    第二域语料（本地；SOURCES.md 公开，全文按 .gitignore 不提交）
 ```
 
 ## 已知局限

@@ -129,16 +129,31 @@ uv run pytest -q                                                              # 
 - **Drift protection**: judge prompt or model change → re-run measurement-segment calibration (cache keys include a prompt content hash); datasets and judge versions frozen with recorded hashes (`data/golden/CHANGELOG.md`).
 - **Cost**: full project (P0–P6) ≈ ¥31 total (10 full judged runs + calibration + acceptance).
 
+## Operations & cost
+
+- **Annotation/QC SOP**: `docs/ops-playbook.md` — 7 binary criteria, stratified 20% sampling, rework escalation, AI second-annotation protocol, badcase promotion.
+- **Cost–quality–latency**: `docs/cost-quality.md` — same-set dev 60: HyDE off keeps quality, −44% cost, −45% p50; removing rerank saves 84% but raises false refusals by 13.5pp (p=0.023).
+- **QC dashboard**: `eval_results/analysis/qc_dashboard.md` (SQL: `qc_dashboard.sql`; reproduce: `uv run python scripts/qc_metrics.py`, SQLite, no new dependencies).
+- **Badcase promotion**: `scripts/promote_badcase.py` writes only to `eval_results/regression/`, never edits golden; new items require human review + CHANGELOG.
+
+## Second domain & AI second annotation
+
+- **Second-domain mini eval (e-commerce customer service FAQ)**: same final config / judge, 30 questions on the public `ecom-cs-agent` dataset (mock orders/logistics + policies). R@5 0.825, false refusal 23.1%, answer correctness 0.692; the failure surface moved from retrieval (8/19 in the paper domain) to date arithmetic, order reference, policy branching, and safe-but-unhelpful refusals (8/26). Report: [`docs/transferability.md`](docs/transferability.md).
+- **AI second annotation (same-family, honestly labeled)**: 50 questions / 134 judgments; AI–human agreement 0.948, κ 0.836; 7 disagreements adjudicated as 2 AI-over-strict, 4 guideline gaps, 1 human miss — AI is a pre-screen, not a replacement for human review. Report: [`P4b_ai_second_annotation.md`](eval_results/calibration/reports/P4b_ai_second_annotation.md).
+- **Judge transfer spot-check (complete)**: 20 questions / 56 human judgments; judge–human agreement 0.946, κ 0.825, TPR 1.000, TNR 0.936; 3 disagreements. Report: [`judge_spotcheck_v1_report.md`](data/business/judge_spotcheck_v1_report.md).
+
 ## Repository map
 
 ```
 src/ragqa/            core package (core facade / retrieval / generation / evaluation / api / tools layer / mcp_server / agentic single-turn tool selection)
 apps/                 Web UI (web_ui.html) + review viewer (review_viewer.html), both single-file
-scripts/              evaluation & experiment scripts: run_eval · calibrate_judge · attribute_run · judge_crosscheck · rejudge_errors, etc.
-eval_results/         all run artifacts + analysis reports (analysis/: baseline & P6/P9 reports, ablation panel, k-scan, RAGAS comparison)
+scripts/              evaluation & experiment scripts: run_eval · calibrate_judge · attribute_run · judge_crosscheck · rejudge_errors · qc_metrics · promote_badcase · build_business_* · ai_second_annotate
+eval_results/         all run artifacts + analysis reports (analysis/: baseline & P6/P9 reports, ablation panel, k-scan, RAGAS comparison, QC dashboard; regression/: badcase regression tags)
 decisions/            decision records (DR-001 dependency migration / DR-002 incident / DR-003 HyDE / DR-004 iteration rulings / DR-005 MCP dependency)
-docs/                 eval plan · annotation guideline · label reference · P5 plan
+docs/                 eval plan · annotation guideline · label reference · P5 plan · ops playbook · cost-quality · transferability
 data/golden/          frozen datasets (golden_v1.1 / safety_v1 + CHANGELOG + health report)
+data/business/        second-domain mini eval (30 questions + health + judge spot-check)
+data/business_faq/    second-domain corpus (local; SOURCES.md tracked, full text gitignored)
 ```
 
 ## Known limitations

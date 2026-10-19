@@ -1,0 +1,4 @@
+# 第二域语料：仅本地评测，不提交全文（ecom-cs-agent 无 LICENSE）
+_raw/
+*.txt
+manifest.json
